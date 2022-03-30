@@ -1,0 +1,921 @@
+* Essential type classes
+
+** From functors to monads
+
+* Increasing levels of abstraction
+
+We can use Haskell's typeclass system to specify many /properties/ or
+/behaviours/ of a type.
+
+We might say that values of a type, =Foo=, can be /ordered/, /copared
+for equality/ or /converted to a string for printing/ by declaring
+them to be instances of the right typeclasses. (*Which ones?*)
+
+* Increasing levels of abstraction
+
+=Eq=, =Ord= and =Show= describe behaviour which is conceptually
+straightforward -- testing for equality will mean different things for
+different types, but it's easy to imagine how it will work.
+
+Haskell encourages us to define and use abstractions that are
+higher-level than we come across in many languages.
+
+* Increasing levels of abstraction
+
+There are many useful typeclasses that describe behaviours that are
+higher-level.
+
+We've already seen one example: the class of data structures that can be
+/folded/:
+
+#+BEGIN_SRC haskell 
+class Foldable t where
+    foldr :: (a -> b -> b) -> b -> t a -> b
+#+END_SRC
+
+We made our =Tree= data type into an instance of =Foldable=.
+
+#+BEGIN_SRC haskell 
+data Tree a = Branch a (Tree a) (Tree a) | Leaf a
+
+foldTree :: (a -> b -> b) -> b -> Tree a -> b
+
+instance Foldable Tree where
+  foldr = foldTree
+#+END_SRC
+
+* Lots of stuff is, like, mappable
+
+Another abstraction that we can put into a typeclass is the idea of
+/things that can be mapped over/.
+
+We can map functions over lists:
+
+#+BEGIN_SRC haskell
+map :: (a -> b) -> [a] -> [b]
+map f [] = []
+map f (x:xs) = f x : map f xs
+#+END_SRC
+
+* Lots of stuff is, like, mappable
+
+And we can map over trees:
+
+#+BEGIN_SRC haskell
+data Tree a = Branch a (Tree a) (Tree a) | Leaf a
+
+mapTree :: (a -> b) -> Tree a -> Tree b
+mapTree f (Leaf x) = Leaf (f x)
+mapTree f (Branch x l r) = 
+  Branch (f x) (mapTree f l) (mapTree f r)
+#+END_SRC
+
+* Maps are everywhere
+
+Here we are mapping a =Tree Int= to a =Tree Bool=.
+
+Nodes in the second tree are labelled =True= or =False= depending on
+whether the label on that node in the first tree is odd or even:
+
+#+BEGIN_SRC haskell
+myTree = Branch 5 (Branch 42 (Leaf 1) (Leaf 92)) (Leaf 7)
+
+> mapTree (\i -> (i `mod` 2) ==1) myTree 
+Branch True (Branch False (Leaf True) (Leaf False)) (Leaf True)
+#+END_SRC
+
+* Functors
+
+So we can map over lists (using =map=) and over trees (using =treeMap=).
+This means that they are both =Functors=.
+
+#+BEGIN_SRC haskell
+-- defined in the Prelude
+class Functor f where
+  fmap :: (a -> b) -> f a -> f b
+
+instance Functor [] where
+  fmap = map
+
+-- defined by us
+instance Functor Tree where
+  fmap = mapTree
+#+END_SRC
+
+* Three ways to map, one way to rule them all
+
+Compare the type of =fmap= with that of =map= and =mapTree=:
+
+#+BEGIN_SRC haskell
+map :: (a -> b) -> [a] -> [b]
+
+mapTree :: (a -> b) -> Tree a -> Tree b
+
+fmap :: (a -> b) -> f a -> f b
+#+END_SRC
+
+We can see that =map= and =mapTree= are just versions of =fmap=
+specialised to work on particular types.
+
+=fmap= itself uses polymorphism so that it will work on any type that
+acts a "box", or container.
+
+* Functors
+
+When we declare an instance of =Functor= we have to supply a type
+constructor that takes exactly one parameter.
+
+#+BEGIN_SRC haskell
+instance Functor [] where
+  fmap = map
+#+END_SRC
+
+So we declare and to be functors, not or .
+
+(This may be the first time you've thought about =[]= as a type
+constructor, but it is.)
+
+* The Functor laws
+
+In order for a type, =t=, to be a true functor, our definition of =fmap=
+has to satisfy the *functor laws*:
+
+#+BEGIN_SRC haskell
+fmap id  ==  id
+fmap (f . g)  ==  fmap f . fmap g
+#+END_SRC
+
+There isn't anything in the type system to enforce this but it is an
+expectation on the person defining =fmap= for a given type.
+
+(Think about whether the laws hold true for lists, or for trees...)
+
+* "Boxy" types
+
+We have seen other types that act like containers...=Maybe= is a functor
+too:
+
+#+BEGIN_SRC haskell
+instance Functor Maybe where
+  -- fmap :: (a -> b) -> f a -> f b
+  fmap f Nothing = Nothing
+  fmap f (Just x) = Just (f x)
+
+> fmap toUpper (Just 'a')
+Just 'A'
+fmap toUpper Nothing
+Nothing
+#+END_SRC
+
+* The IO Functor
+
+=IO= is a functor too.
+
+We have seen IO actions with types such as =IO ()=, =IO String= and
+=IO [Bool]=.
+
+Each of these is an action that produces a value of the appropriate type
+when performed.
+
+Calling =fmap= on an IO action simply means applying the mapped function
+to the value produced by the action:
+
+#+BEGIN_SRC haskell
+instance Functor IO where  
+    fmap k action = do  
+        result <- action  
+        return $ k result
+#+END_SRC
+
+* The IO Functor
+
+To understand this *think about the types*. 
+
+=k= is an "ordinary" (non-monadic) function with type =(a -> b)=. 
+
+The type parameter =f= is specialised as =IO=.
+
+#+BEGIN_SRC haskell
+instance Functor IO where 
+    -- fmap :: (a -> b) -> f a -> f b
+    fmap k action = do  
+        result <- action  
+        return $ k result
+#+END_SRC
+
+* The IO Functor
+
+An example:
+
+#+BEGIN_SRC haskell
+import System.Environment
+
+main = do 
+  numArgs <- fmap (show . length) getArgs
+  putStrLn $ "This program was called with " ++ numArgs ++ " arguments" 
+
+> :t (show . length)
+(show . length) :: Show a => [a] -> String
+> :t getArgs
+getArgs :: IO [String]
+> main bananas 42 @#!
+This program was called with 3 arguments
+#+END_SRC
+
+* IO Functor example
+
+In an IO exercise coming up soon, you will be asked to produce a
+function, =parse=.
+
+=parse= is an IO action that takes the path to a file and produces a
+list of log messages when performed.
+
+#+BEGIN_SRC haskell
+parse :: FilePath -> IO [LogMessage]
+
+> parse "sample.log"
+[LogMessage Info 6 "Completed armadillo processing", ...
+LogMessage (Error 99) 10 "Flange failed!"]
+#+END_SRC
+
+* IO Functor example
+
+You then need to make a (pure) function that manipulates the output of
+=parse= by picking out just the most important information from the
+severe error messages:
+
+#+BEGIN_SRC haskell
+whatWentWrong :: [LogMessage] -> [(TimeStamp, String)]
+#+END_SRC
+
+* IO Functor example
+
+In the final problem you need to fit all the pieces together by writing
+a function that uses =parse= and =whatWentWrong=, then writes the result
+to a file.
+
+One approach:
+
+#+BEGIN_SRC haskell
+formatForPrinting :: (TimeStamp, String) -> String
+formatForPrinting (ts,msg) = "[" ++ (show ts) ++ "] " ++ msg 
+
+processLogFile :: FilePath -> FilePath -> IO ()
+processLogFile inp out = do 
+  ms <- parse inp
+  let ms' = map formatForPrinting $ whatWentWrong ms
+  writeFile out $ unlines ms'
+#+END_SRC
+
+* IO Functor example
+
+Note that we run an IO action, pass the result to a pure function, then
+pass the result of the pure function to a second action.
+
+#+BEGIN_SRC haskell
+processLogFile :: FilePath -> FilePath -> IO ()
+processLogFile inp out = do 
+  ms <- parse inp
+  let ms' = map formatForPrinting $ whatWentWrong ms
+  writeFile out $ unlines ms'
+#+END_SRC
+
+* IO Functor example
+
+When we see this pattern, we can tidy up with =fmap=, getting rid of the
+need to use =let= to apply the pure functions.
+
+#+BEGIN_SRC haskell
+processLogFile' :: FilePath -> FilePath -> IO ()
+processLogFile' inp out = do 
+  ms <- fmap (map formatForPrinting . whatWentWrong) $ parse inp
+  writeFile out $ unlines ms
+#+END_SRC
+
+* Applicative functors
+
+Applicative functors are functors that can be used to sequence a series
+of expressions in a given *context*. 
+
+They are defined in the =Control.Applicative= module.
+
+Code written in "applicative style" can be very high level, and uses
+polymorphism in clever ways to create extremely general abstractions.
+
+Applicative style can be difficult to understand at first, but all you
+need to do to work out what a puzzling piece of code does is to
+*follow the types*.
+
+* Applicative functors
+
+In our examples of using =fmap=, we mapped functions that took one
+parameter over the functors. For example:
+
+#+BEGIN_SRC haskell
+> fmap toUpper (Just 'a')
+Just 'A'
+#+END_SRC
+
+* Applicative functors
+
+What if we map a function that takes two parameters over a functor?
+
+#+BEGIN_SRC haskell
+> :t fmap (==) (Just 'a')
+fmap (==) (Just 'a') :: Maybe (Char -> Bool)
+#+END_SRC
+
+Thanks to partial application, the result is a =Maybe= value containing
+a function. 
+
+That function takes a =Char=, compares it to =’a’= and returns =True=
+or =False=.
+
+(Note that we can't show a value like this because there is no =Show=
+instance for functions, but we can check its type).
+
+* Applicative functors
+
+So, when we map functions that take more than one argument over
+functors, we get functors that contain partially applied functions. 
+
+If we want to apply the rest of the arguments to those functions, we
+can use =fmap= again:
+
+#+BEGIN_SRC haskell
+> let tree = Branch 1 (Leaf 2) (Leaf 3)
+> let tree' = fmap (*) tree
+> :t tree'
+tree' :: Tree (Integer -> Integer)
+> fmap (\f -> f 30) tree'
+Branch 30 (Leaf 60) (Leaf 90)
+#+END_SRC
+
+* Applicative functors
+
+Using =fmap= to map a function that takes several arguments over a
+functor, then using =fmap= again over the resulting functor is a common
+pattern, but the =Functor= typeclass makes it quite fiddly.
+
+The =Applicative= typeclass makes it easy to take a functor like
+=Leaf (*2)= (rather than just the function =(*2)=) and map it over a
+functor like =Leaf 30=.
+
+The usefulness of this will be more obvious when we look at how it
+works.
+
+* The =Applicative= typeclass
+
+The =Applicative= typeclass says that all applicatives have to be
+functors and implement two functions, =pure= and =(<*>)=.
+
+#+BEGIN_SRC haskell
+class (Functor f) => Applicative f where  
+    pure :: a -> f a  
+    (<*>) :: f (a -> b) -> f a -> f b 
+#+END_SRC
+
+* The =Applicative= typeclass
+
+=pure= wraps up a value in an =Applicative= (exactly what =return=
+does for IO actions).
+
+This is called putting the value into an "applicative context".
+
+* The =Applicative= functions
+
+The =(<*>)= function takes an applicative that contains a function from
+=a= to =b=, an applicative that contains an =a= value, and returns an
+applicative containing a =b= value.
+
+#+BEGIN_SRC haskell
+class (Functor f) => Applicative f where  
+    pure :: a -> f a  
+    (<*>) :: f (a -> b) -> f a -> f b 
+#+END_SRC
+
+Note the similarity with =fmap :: (a -> b) -> f a -> f b=.
+
+* Lots of things are =Applicative=
+
+As you might guess by now, lots of familiar types are instances of
+=Applicative=, including =Maybe=, lists and =IO=.
+
+The instance declaration for =Maybe=:
+
+#+BEGIN_SRC haskell
+instance Applicative Maybe where  
+    pure = Just  
+    Nothing <*> _ = Nothing  
+    (Just f) <*> something = fmap f something 
+#+END_SRC
+
+* The =Maybe= instance
+
+Defining the instance ourselves would be made pretty easy just by
+looking at the types of =pure= and =(<*>)=.
+
+#+BEGIN_SRC haskell
+class (Functor f) => Applicative f where  
+    pure :: a -> f a  
+    (<*>) :: f (a -> b) -> f a -> f b 
+
+instance Applicative Maybe where  
+    pure = Just  
+    Nothing <*> _ = Nothing  
+    (Just f) <*> something = fmap f something 
+#+END_SRC
+
+=pure= wraps up a value using =Just=.
+
+* The =Maybe= instance
+
+=(<*>)= attempts to apply the function wrapped in the first applicative
+to the value in the second. 
+
+If the first argument is =Nothing=, there is nothing to be done.
+
+#+BEGIN_SRC haskell
+class (Functor f) => Applicative f where  
+    pure :: a -> f a  
+    (<*>) :: f (a -> b) -> f a -> f b 
+
+instance Applicative Maybe where  
+    pure = Just  
+    Nothing <*> _ = Nothing  
+    (Just f) <*> something = fmap f something 
+#+END_SRC
+
+If the first argument is =(Just f)= then we =fmap= the function over the
+second value.
+
+* Using =Maybe= in applicative style
+
+#+BEGIN_SRC haskell
+> Just (+3) <*> Just 9  
+Just 12  
+> pure (+3) <*> Just 10  
+Just 13  
+> Nothing <*> Just 42
+Nothing
+> Just (+3) <*> Nothing  
+Nothing
+#+END_SRC
+
+We can see why =Nothing <*> Just 42= returns =Nothing= from the
+definition of the instance.
+
+=Just (+3) <*> Nothing= returns =Nothing= because of the definition of
+=fmap= in the =Functor= instance for =Maybe= -- mapping a function onto
+=Nothing= returns =Nothing=.
+
+* Chain them =Maybe=s
+
+But applying these functions that take one value could have been done
+with functors. 
+
+It is when we apply functions that take more than one argument in an
+applicative context that we see how this style can be really useful:
+
+#+BEGIN_SRC haskell
+> pure (+) <*> Just 42 <*> Just 99  
+Just 141 
+> pure (+) <*> Just 42 <*> Nothing  
+Nothing  
+> pure (+) <*> Nothing <*> Just 99  
+Nothing
+#+END_SRC
+
+* An applicative pattern
+
+Applicative style often consists in using the following pattern:
+
+#+BEGIN_SRC haskell
+pure f <*> x <*> y <*> ...
+#+END_SRC
+
+That is, place an ordinary function, =f=, into an applicative context
+then apply it to the applicative =x=, apply the resulting applicative to
+the applicative =y=, and so on.
+
+By now, the name should be making sense -- applicative style enables us
+to functions within some context, that might be =Maybe=, or =IO=, or
+=Tree=.
+
+* The first =Applicative= law
+
+If =x= is an applicative, then it is a functor too. 
+
+Just as with functors, there are several laws that instances of
+=Applicative= must obey. The first of these is:
+
+#+BEGIN_SRC haskell
+pure f <*> x == fmap f x
+#+END_SRC
+
+* From =pure= to =fmap=
+
+So, if our applicative obeys the first law, we can rewrite
+
+#+BEGIN_SRC haskell
+pure f <*> x <*> y <*> ...
+#+END_SRC
+
+as
+
+#+BEGIN_SRC haskell
+fmap f x <*> y <*> ...
+#+END_SRC
+
+* From =fmap= to =(<*>)=
+
+If we rewrite this again with =fmap= as an infix function, we get the
+following:
+
+#+BEGIN_SRC haskell
+f `fmap` x <*> y <*> ...
+#+END_SRC
+
+=Control.Applicative= exports the =(<$>)= operator, which is just an
+infix version of =fmap=. 
+
+So our final version of this pattern:
+
+#+BEGIN_SRC haskell
+f <$> x <*> y <*> ...
+#+END_SRC
+
+* Applicative =Maybe=
+
+Examples with =Maybe=:
+
+#+BEGIN_SRC haskell
+> (\x y -> x ++ (show y)) <$> Just "Bananas " <*> Just 123
+Just "Bananas 123"
+> (\x y -> x ++ (show y)) <$> Nothing <*> Just 123
+Nothing
+> (,,) <$> Just 99 <*> Just "Ting" <*> Just False
+Just (99,"Ting",False)
+#+END_SRC
+
+(Note that =(,,)= is the function that makes triples.)
+
+* Applicative lists
+
+=Maybe= is a good example to get a feel for what it means to be an
+applicative functor, and you will sometimes see functions that work with
+=Maybe= written in applicative style.
+
+Lists are applicative functors too, where =pure= means wrapping some
+value in a list, and =fs <*> xs= means applying the functions in =fs= to
+the values in =xs=.
+
+* Applicative trees
+
+=Tree= is a =Functor= -- can we make it into an =Applicative= too?
+
+This isn't so obvious as making our =Functor= instance for =Tree=...the
+type of =(<*>)= when specialised for =Tree=:
+
+#+BEGIN_SRC haskell
+(<*>) :: Tree (a -> b) -> Tree a -> Tree b
+#+END_SRC
+
+There are several choices as to how we combine the trees...
+
+* The =Tree= instance of =Applicative=
+
+This one is arguably a pretty natural choice, "zipping up" the trees
+with the function to be applied:
+
+#+BEGIN_SRC haskell
+instance Applicative Tree where
+  pure = Leaf
+  (Leaf f) <*> t              = fmap f t
+  (Branch f l r) <*> (Leaf x) = Leaf (f x)
+  (Branch f l r) <*> (Branch x l' r') = Branch (f x) (l <*> l') (r <*> r')
+
+> let t1 = Branch 1 (Leaf 2) (Leaf 3)
+> let t2 = Branch 10 (Leaf 20) (Leaf 30)
+> (*) <$> t1 <*> t2
+Branch 10 (Leaf 40) (Leaf 90)
+#+END_SRC
+
+* Applicative IO
+
+The place where you will come across applicative style most often,
+however, is probably in IO-bound code.
+
+This is because we often need to sequence actions together in
+applications that do a lot of IO.
+
+* Applicative IO
+
+Using the applicative pattern in an IO context means we /perform/ the
+action =x= then apply =f= to the result, say =x’=, then perform =y= and
+apply =(f x’)= to the result, and so on.
+
+#+BEGIN_SRC haskell
+f <$> x <*> y <*> ...
+#+END_SRC
+
+* Applicative IO
+
+This action reads in two lines of text from the user, applies the =(++)=
+function to stick the lines together, then returns the result.
+
+#+BEGIN_SRC haskell
+concatLines :: IO String  
+concatLines = do  
+    a <- getLine  
+    b <- getLine  
+    return $ a ++ b 
+#+END_SRC
+
+* Applicative IO
+
+
+
+
+In applicative style this becomes:
+
+#+BEGIN_SRC haskell
+concatLines :: IO String  
+concatLines = (++) <$> getLine <*> getLine 
+#+END_SRC
+
+* Applicative IO
+
+
+
+
+The applicative pattern comes in useful whenever you retrieve values
+from several IO actions then apply them to a function.
+
+#+BEGIN_SRC haskell
+main = do 
+   a <- e1
+   b <- e2
+   c <- e3
+   return $ f a b c
+
+-- same as
+
+main = f <$> e1 <*> e2 <*> e3
+#+END_SRC
+
+* Summary
+
+
+
+
+Functors and applicative functors are high-level abstractions that allow
+us to write very general, polymorphic code.
+
+This style of code takes some getting used to, but the types involved
+are not that complicated. 
+
+When you look at some code written in applicative style, check the
+definitions of =Functor= and =Applicative= and work out the types.
+
+* Monads
+
+** Things that can be sequenced
+
+* =Monads=
+
+We have already seen the =Monad= typeclass when we looked at =IO=.
+
+All instances of =Monad= are instances of =Applicative= (so they are
+instances of =Functor= too).
+
+#+BEGIN_SRC haskell
+class Applicative m => Monad m where
+  (>>=)  :: m a -> (a -> m b) -> m b
+  (>>)   :: m a -> m b -> m b
+  return :: a -> m a
+  fail   :: a -> m a   
+#+END_SRC
+
+* The =Monad= typeclass
+
+#+BEGIN_SRC haskell
+(>>=) :: m a -> (a -> m b) -> m b
+#+END_SRC
+
+=>>== (/bind/) takes a monadic action as it's first argument, performs
+it, then passes the result to it's second argument, which is a
+function.
+
+We can use it to chain together monads and monadic functions.
+
+* The =Monad= typeclass
+
+Notice the relationship to the type of =(<*>)=:
+
+#+BEGIN_SRC haskell
+> :t (<*>)
+(<*>) :: Applicative f => f (a -> b) -> f a -> f b
+> :t (>>=)
+(>>=) :: Monad m => m a -> (a -> m b) -> m b
+#+END_SRC
+
+* The =Monad= typeclass
+
+#+BEGIN_SRC haskell
+(>>) :: m a -> m b -> m b
+#+END_SRC
+
+=>>= takes a monadic action as its first argument, performs it and
+/throws away the result/, then performs its second argument, also a
+monadic action.
+
+* The =Monad= typeclass
+
+#+BEGIN_SRC haskell
+return :: a -> m a
+#+END_SRC
+
+=return= takes a value and "wraps it up" in the monad.
+
+* The =Monad= typeclass
+
+The type or =return= is identical to =pure= from =Applicative= so it
+isn't really needed (and the name doesn't make a lot of sense).
+
+=fail= has the same type as =return= and is there for historical
+reasons. 
+
+It only makes sense for monads that can "fail" in some sense (as we
+will see later).
+
+* The =Monad= typeclass
+
+Let's look more closely at the type of =(>>=)=.
+
+#+BEGIN_SRC haskell
+(>>=) :: m a -> (a -> m b) -> m b
+#+END_SRC
+
+The basic intuition is that it combines two computations into one larger
+computation.
+
+* The =Monad= typeclass
+
+#+BEGIN_SRC haskell
+(>>=) :: m a -> (a -> m b) -> m b
+#+END_SRC
+
+The first argument, =m a=, is the first computation.
+
+The second argument to =(>>=)= has type =a -> m b=: a function of this
+type, given a result of the first computation, can produce a second
+computation to be run.
+
+* The =Monad= typeclass
+
+#+BEGIN_SRC haskell
+(>>=) :: m a -> (a -> m b) -> m b
+#+END_SRC
+
+In other words, ~x >>= k~ is a computation which runs =x=, and then uses
+the result(s) of =x= to decide what computation to run second, using the
+output of the second computation as the result of the entire
+computation.
+
+* Lots of things are =Monad=s
+
+It probably doesn't come as much of a surprise at this stage, but
+=Maybe= is a monad too.
+
+The instance declaration is pretty similar to the one for =Applicative=.
+The comments show the types of =return= and ~(>>=)~ if they were
+specialised for =Maybe=.
+
+#+BEGIN_SRC haskell
+instance Monad Maybe where
+  -- return :: a -> Maybe a
+  return = Just
+  -- (>>=) :: Maybe a -> (a -> Maybe b) -> Maybe b
+  Nothing  >>= _ = Nothing
+  (Just x) >>= f = f x
+  fail _   = Nothing
+#+END_SRC
+
+* Lots of things are =Monad=
+
+Because =Maybe= is a =Monad=, we can chain together functions that work
+with =Maybe a= values in convenient ways instead of having to check with
+the result from each function is =Nothing= or =Just x=.
+
+Imagine we have three lookup tables like so:
+
+#+BEGIN_SRC haskell
+
+data Ingredient = Banana | Potato | Lemon deriving (Show, Eq)
+data Recipe = Fritters | Chips deriving (Show, Eq)
+data Sauce = Ketchup deriving (Show, Eq)
+
+ingredients = [(1, Banana), (2, Potato), (3, Lemon)]
+recipes = [(Banana, Fritters), (Potato, Chips)]
+sauces = [(Chips, Ketchup)]
+#+END_SRC
+
+* Lookup tables
+
+#+BEGIN_SRC haskell
+> :t lookup
+lookup :: Eq a => a -> [(a, b)] -> Maybe b
+> lookup 1 ingredients
+Just Banana
+> lookup Potato recipes
+Just Chips
+> lookup Lemon recipes
+Nothing
+> lookup Fritters sauces
+Nothing
+> lookup Chips sauces
+Just Ketchup
+#+END_SRC
+
+* Lots of things are =Monad=
+
+We want to look up an ingredient in the first table, use that to get a
+recipe, if one exists, then use that to get a recommended sauce, if it
+exists. We can do it with nested =case= statements.
+
+#+BEGIN_SRC haskell
+getSauce :: Int -> Maybe Sauce
+getSauce n = 
+  case lookup n ingredients of
+    Just i -> case lookup i recipes of
+                Just r -> lookup r sauces
+                Nothing -> Nothing
+    Nothing -> Nothing
+
+> getSauce 1
+Nothing
+> getSauce 3
+Just Ketchup
+#+END_SRC
+
+* Lots of things are =Monad=s
+
+However, we can chain together these kind of operations on =Maybe=
+values, because =Maybe= is a =Monad=. We use =flip= because =lookup=
+expects the key to the table as the first argument:
+
+#+BEGIN_SRC haskell
+getSauce :: Int -> Maybe Sauce
+getSauce n = lookup n ingredients  -- returns Maybe Ingredient
+                >>= flip lookup recipes -- returns Maybe Recipe
+                >>= flip lookup sauces -- returns Maybe Sauce
+
+:t (>>=)
+(>>=) :: Monad m => m a -> (a -> m b) -> m b
+#+END_SRC
+
+Any one of the calls to =lookup= could result in a =Nothing= value, but
+we no longer need to check.
+
+* Monad laws
+
+In order for the function definitions of =(>>=)=, =return= and =(>>)=
+for each monad instance to "do the right thing" they need to respect the
+"Monad Laws":
+
+#+BEGIN_SRC haskell
+return a >>= k  =  k a
+m >>= return    =  m
+m >>= (\x -> k x >>= h)  =  (m >>= k) >>= h
+#+END_SRC
+
+These basically say the monad instance will behave as we expect...
+
+* =Either= as a monad
+
+=Either a b= is the type we use when we want to return a value of type
+=a= /or/ one of type =b=.
+
+When working with =Either= types we often end up with deeply nested case
+statements, similar to =Maybe=.
+
+#+BEGIN_SRC haskell
+data Either a b = Left a | Right b
+#+END_SRC
+
+* =Either= for handling errors
+
+=Either= is often used for error handling.
+
+If a function might return a value of type =b= /or/ an error, we make a
+type where the =Left= value is an error message.
+
+We will see this in action in a later case study.
+
+* Typeclassopedia
+
+A classic tutorial that does a great job of explaining the hierarchy of
+type systems in Haskell:
+
+[[https://wiki.haskell.org/Typeclassopedia]]

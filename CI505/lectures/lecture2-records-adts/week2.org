@@ -1,0 +1,808 @@
+* Tuples
+
+Tuples are the simplest data structure: comma-separated lists of values
+surrounded by brackets. Here is a function that carries out =mod= and
+=div= at the same time:
+
+#+BEGIN_SRC haskell  
+divMod :: Num a => a -> a -> (a, a)
+divMod x y = (div x y, mod x y)
+#+END_SRC
+
+* Tuples
+
+Tuples with two values are called /pairs/. 
+
+Those with three values are called /triples/.  
+
+For n>3, we say /n-tuple/ (e.g. 4-tuple). The functions =fst= and
+=snd= select the first and second elements of a pair:
+
+#+BEGIN_SRC haskell 
+> let tup = (1, ''chat'')
+> fst tup
+1
+> snd tup
+''chat''
+#+END_SRC
+
+* Lists
+
+Lists are one of the basic building blocks of a Haskell program. 
+
+Square brackets delimit the list and values are separated by
+commas. 
+
+The =(:)= operator sticks a new value on the head of a list -- this is
+called /consing/.
+
+#+BEGIN_SRC haskell
+myInts = [1, 2, 3, 4]
+  
+> 42 : myInts
+[42, 1, 2, 3, 4]
+#+END_SRC
+
+=[]= is the . We can build up lists by consing things to the empty
+list:
+
+#+BEGIN_SRC haskell
+myInts = 1:2:3:4:[]
+#+END_SRC
+
+* Lists
+
+We can create lists of any =Ord= instance using a :
+
+#+BEGIN_SRC haskell 
+> [1..5]
+[1, 2, 3, 4, 5]
+> [Red..Green]
+[Red, Blue Green]
+#+END_SRC
+
+(Given last week's definition of a colour datatype.)
+
+* Lists
+
+=head= and =tail= return the head of the list and everything except the
+head, respectively.
+
+#+BEGIN_SRC haskell 
+> head myInts
+1
+> tail myInts
+[2, 3, 4]
+#+END_SRC
+
+Calling =head= on an empty list is . There is no possible return value
+so we get an . The =null= function can be used to check whether the list
+is empty or not before calling =head=.
+
+* Lists
+
+All elements of a list need to have the same type.
+
+#+BEGIN_SRC haskell
+>  True : [1, 2, 3] -- consing a bool onto a list of ints!
+<interactive>:15:8:
+Couldn't match type `Integer' with `Bool'
+Expected type: [Bool]
+  Actual type: [Integer]
+In the second argument of `(:)', namely `myInts'
+In the expression: True : myInts
+In an equation for `it': it = True : myInts
+#+END_SRC
+
+* List comprehensions
+
+List comprehensions are syntactic sugar (convenient but not
+necessary).
+
+#+BEGIN_SRC haskell
+s = "Hello"
+> [toUpper c | c <- s]
+"HELLO"
+#+END_SRC
+
+The =c <- s= feeds each character of =s= in turn to the left-hand
+expression =toUpper c=, building a new list.
+
+* Infinite lists
+
+Because Haskell is lazy, there is no problem with creating .
+
+#+BEGIN_SRC haskell
+positiveInts = [1..]
+
+positiveOddInts = [x | x <- positiveInts, x `mod` 2 == 1]
+
+infiniteOnes = repeat 1
+
+powersOf2 = map (2^) positiveInts
+
+> take 10 powersOf2
+[2,4,8,16,32,64,128,256,512,1024]
+#+END_SRC
+
+These definitions will all run forever but are often useful when
+combined with functions like =take=, e.g. =take 10 powersOf2=.
+
+* Lists
+
+We have already mentioned =map= -- =map f xs= applies the function =f=
+to every element of =xs=.
+
+Like all the the =Prelude= functions we could have written it
+ourselves:
+
+#+BEGIN_SRC haskell
+map :: (a -> b) -> [a] -> [b]
+map _ [] = []
+map f (x:xs) = f x : map f xs
+
+> map (> 5) [1, 99, 0, 5]
+[False, True, False, False]
+#+END_SRC
+
+* Lists
+
+We have already mentioned =filter= too -- =filter p xs= returns a list
+containing every element, =x=, of =xs= for which =p x= is =True=.
+
+#+BEGIN_SRC haskell
+filter :: (a -> Bool) -> [a] -> [a]
+filter p []= []
+filter p (x:xs)
+   | p x= x : filter p xs
+   | otherwise  = filter p xs
+
+> filter (> 5) [1, 99, 0, 5]
+[99]
+#+END_SRC
+
+* More list functions
+
+Extract the last element of a list, which must be finite and
+non-empty.
+
+#+BEGIN_SRC haskell
+last :: [a] -> a
+#+END_SRC
+
+Extract the elements after the head of a list, which must be non-empty.
+
+#+BEGIN_SRC haskell
+tail :: [a] -> [a]
+#+END_SRC
+
+Return all the elements of a list except the last one. The list must be
+non-empty.
+
+#+BEGIN_SRC haskell
+init :: [a] -> [a]
+#+END_SRC
+
+* More list functions
+
+Test whether a list is empty.
+
+#+BEGIN_SRC haskell
+null :: [a] -> Bool
+#+END_SRC
+
+Returns the length of a finite list as an =Int=.
+
+#+BEGIN_SRC haskell
+length :: [a] -> Int
+#+END_SRC
+
+List index (subscript) operator, starting from 0.
+
+#+BEGIN_SRC haskell
+(!!) :: [a] -> Int -> a
+#+END_SRC
+
+=reverse xs= returns the elements of =xs= in reverse order. =xs= must be
+finite.
+
+#+BEGIN_SRC haskell
+reverse :: [a] -> [a]
+#+END_SRC
+
+* Zipping lists together
+
+The =zip= function takes two lists and returns a list of corresponding
+pairs. If one input list is short, excess elements of the longer list
+are discarded. The =zipWith= function is more general, and uses any
+binary function argument to combine the values.
+
+#+BEGIN_SRC haskell
+zip :: [a] -> [b] -> [(a, b)] 
+zip (x:xs) (y:ys) = (x,y) : zip xs ys
+zip _ _ = []
+
+zipWith :: (a -> b -> c) -> [a] -> [b] -> [c] 
+#+END_SRC
+
+*Define the =zipWith= function.*
+
+* Documentation
+
+As with every new language, you need to practice reading the
+documentation.
+
+The GHC docs have info about using the compiler and interpreter and all
+of the standard libraries:
+[[https://downloads.haskell.org/~ghc/latest/docs/html/]].
+
+E.g., all of the standard list functions are described here:
+[[https://downloads.haskell.org/~ghc/latest/docs/html/libraries/base-4.13.0.0/Data-List.html]].
+
+* Documentation
+
+Another great source of documentation is :
+[[http://www.haskell.org/hoogle/]].
+
+Hoogle allows you to search using names or type signatures.
+
+So, if you know you want a function that takes a function and a list and
+applies the function to the elements of a list, you could search for
+=(a -> b) -> [a] -> [b]=
+* Strings
+
+A =String= is a list of =Char= values. So, of course, you can treat
+them as lists:
+
+#+BEGIN_SRC haskell
+> 'J' : ``im''
+``Jim''
+> reverse ``Jim''
+``miJ''
+#+END_SRC
+
+But there are also lots of specialised functions for working with
+=String=, such as =lines=, =unlines=, =words= and =unwords=.
+
+* Strings
+
+We can convert values to a =String= if they are a member of the =Show=
+typeclass:
+
+#+BEGIN_SRC haskell
+> show True
+``True''
+> show (99, ``Bananas'')
+"(99,\"Bananas\")"
+#+END_SRC
+
+* Strings
+
+We can convert =String=s to other types if we have a suitable member of
+the =Read= typeclass.
+
+Note that we have to tell the compiler which type we want, and it might
+fail:
+
+#+BEGIN_SRC haskell
+
+  > (read 5) :: Int
+  5
+  > (read 5) :: Bool
+  * Exception: Prelude.read: no parse
+#+END_SRC
+
+* Efficient strings
+
+Because =String=s are just lists of =Char=s, they are not very
+efficient. If your program does a lot of string concatenation, for
+example, you should use =Data.Text=.
+
+Convert =String= to and from =Text= with =pack= and =unpack=. The
+functions for consing, concatenating, etc with =Text= are much more
+efficient.
+
+* Other useful types and Prelude functions
+
+=Maybe= is the type of computations which might fail.
+
+#+BEGIN_SRC haskell
+data Maybe a = Just a | Nothing
+
+safeHead :: [a] -> Maybe a
+safeHead [] = Nothing
+safeHead (x:xs) = Just x
+
+applyWithDefault :: (a -> b) -> a -> [a] -> b 
+applyWithDefault f def xs = case safeHead xs of 
+  Nothing -> f def
+  Just x  -> f x
+#+END_SRC
+
+Note the use of =Maybe='s constructors in pattern matching.
+
+* More Haskell features
+
+=Either a b= is for situations where there are two possibilities: a
+value of type =a= or one of type =b=.
+
+#+BEGIN_SRC haskell
+data Either a b = Right a | Left b
+#+END_SRC
+
+You could use it if you want a function that returns either a =String=
+or and =Int=, for instance. 
+
+* More Haskell features
+
+=Either= is often used for computations that might fail, with an error
+message in =Left=:
+
+#+BEGIN_SRC haskell
+lookUp :: String -> Map -> Either String (Double, Map)
+lookUp key table = 
+case M.lookup key table of
+  Just v  -> Right (v, table)
+  Nothing -> Left ("Undefined variable " ++ key)
+#+END_SRC
+
+* You could have written the Prelude yourself!
+
+How would you implement the following?
+
+#+BEGIN_SRC haskell
+-- Identity function.
+id :: a -> a
+
+-- Constant function.
+const :: a -> b -> a 
+
+-- Function composition.
+(.) :: (b -> c) -> (a -> b) -> a -> c 
+
+
+#+END_SRC
+
+* Useful Prelude functions
+
+How would you implement the following?
+
+#+BEGIN_SRC haskell
+-- flip f takes its (first) two arguments in the reverse order of f.
+flip :: (a -> b -> c) -> b -> a -> c 
+
+
+  --   until p f yields the result of applying f until p holds.
+  until :: (a -> Bool) -> (a -> a) -> a -> a 
+
+> flip (>) 3 5
+True
+
+> until (> 100) (*2) 1
+128
+#+END_SRC
+
+* Algebraic data types
+
+We've seen lots of data types so far: some simple, like =Int= and
+=Bool=, and some that take parameters, like =Maybe a=.
+
+Defining our own is done using the keyword:
+
+#+BEGIN_SRC haskell
+data Bit = Zero | One
+#+END_SRC
+
+* Algebraic data types
+
+=Bit= is the name of the type. On the RHS of the === come the , listing
+the possible values that a =Bit= might have.
+
+If we want to print out values of the type =Bit=, or compare them for
+equality, we can add them to the appropriate typeclasses.
+
+#+BEGIN_SRC haskell
+data Bit = Zero | One deriving (Show, Eq)
+#+END_SRC
+
+* Functions over =Bit=s
+
+We can make functions over our new data type:
+
+#+BEGIN_SRC haskell
+  addBits :: Bit -> Bit -> [Bit]
+  addBits Zero Zero = [Zero]
+  addBits Zero One  = [One]
+  addBits One Zero  = [One]
+  addBits One One   = [One, Zero]
+#+END_SRC
+
+* Declaring type synonyms
+
+A list of =Bit= values is a binary number. We can make our type signatures
+more descriptive by declaring an using the keyword:
+
+#+BEGIN_SRC haskell
+type Bin = [Bit]
+
+addBits :: Bit -> Bit -> Bin
+...
+#+END_SRC
+
+* Algebraic data types in general
+
+Because none of its constructors take any parameters, =Bit= is an
+/enumeration type/, like an =enum= in Java. 
+
+We can make more interesting data types that carry more values around:
+
+#+BEGIN_SRC haskell
+data FailableDouble = Failure | OK Double
+  deriving Show
+#+END_SRC
+
+The =FailableDouble= type has two data constructors. The first one,
+=Failure=, takes no arguments, so =Failure= by itself is a value of type
+=FailableDouble=.
+
+* Algebraic data types in general
+
+#+BEGIN_SRC haskell
+data FailableDouble = Failure
+| OK Double
+  deriving Show
+#+END_SRC
+
+The second constructor, =OK=, takes an argument of type =Double=. So
+=OK= by itself is not a value of type =FailableDouble=; we need to give
+it a =Double=. For example, =OK 3.4= is a value of type
+=FailableDouble=.
+
+#+BEGIN_SRC haskell
+ex01 = Failure
+ex02 = OK 3.4
+#+END_SRC
+
+What is the type of =OK=?
+
+* Algebraic data types in general
+
+An example of how we might use our =FailableDouble=:
+
+#+BEGIN_SRC haskell
+safeDiv :: Double -> Double -> FailableDouble
+safeDiv _ 0 = Failure
+safeDiv x y = OK (x / y)
+#+END_SRC
+
+* Recursive data types
+
+Data types can be /recursive/, i.e. the definition can call
+itself. 
+
+=Nat= is the type of natural numbers:
+
+#+BEGIN_SRC haskell
+data Nat = Z | S Nat deriving (Show)
+#+END_SRC
+
+=Z= stands for zero and =S= for . So, a =Nat= is either zero or the
+successor of some =Nat= -- e.g. the number one is =S Z= and two is
+=S (S Z)=.
+
+* Functions over =Nat=s
+
+Adding and subtracting =Nat=s:
+
+#+BEGIN_SRC haskell
+add :: Nat -> Nat -> Nat
+add Z n = n
+add (S n) m = add n (S m)
+
+sub :: Nat -> Nat -> Nat
+sub Z m = m
+sub n Z = Z
+sub (S n) (S m) = sub n m
+#+END_SRC
+
+* Trees
+
+/Trees/ are used a lot in functional programming. 
+
+A tree is made up of /nodes/, which normally carry a piece of data as
+a label, and each node is either a /branch/ or a /leaf/. 
+
+A /binary tree/ is one in which every node is a leaf or a branch with
+at most two children:
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/bst.pdf]]
+#+END_center
+
+* Trees
+
+A data type of trees with =Int=s for labels:
+
+#+BEGIN_SRC haskell
+data IntTree = Branch Int IntTree IntTree | Leaf Int
+deriving (Show)
+
+myIntTree = Branch 42 (Branch 9 (Leaf 1) (Leaf 2)) (Leaf 3)
+#+END_SRC
+
+Note that branches in this binary tree always have *exactly* two
+children. If we want them to have one or two we would use =Maybe
+IntTree= for the children.
+ 
+* Polymorphic data types
+
+What if we want a tree with =Char= labels, or some other data type?
+
+Instead of creating a new data type for each type of label, we can
+make the definition /polymorphic/. 
+
+This is done by introducing type parameters on the LHS of the
+definition:
+
+#+BEGIN_SRC haskell
+data Tree a = Branch a (Tree a) (Tree a) | Leaf a
+
+t1 = Branch 42 (Branch 9 (Leaf 1) (Leaf 2)) (Leaf 3)
+t2 = Leaf True
+
+> :t t1
+myTree :: Tree Integer
+> :t t2
+t2 :: Tree Bool
+#+END_SRC
+
+* Data type constructors are functions too
+
+Data type constructors can be partially applied, just like functions:
+
+#+BEGIN_SRC haskell
+> :t Leaf
+Leaf :: a -> Tree a
+> let leaves = map Leaf ['a', 'b', 'c']
+> leaves
+[Leaf 'a', Leaf 'b', Leaf 'c']
+> :t leaves
+leaves :: [Tree Char]
+#+END_SRC
+
+* Pick a type, any type
+
+And when we make a new tree, the types have to match:
+
+#+BEGIN_SRC haskell
+> Branch 1 (Leaf 2) (Leaf False)
+
+<interactive>:63:23:
+Couldn't match expected type `Tree a0' with actual type `Bool'
+In the first argument of `Leaf', namely `False'
+In the second argument of `Branch', namely `(Leaf False)'
+In the expression: Branch (Leaf 1) (Leaf False)
+#+END_SRC
+
+* Records
+
+Data type constructors can take any number of parameters (also called
+/fields/). 
+
+When there are more than two or three, the meaning of each parameter
+can be hard to remember.
+
+Take this type, where each =Customer= has a first name, last name, email
+address, phone number and credit card number:
+
+#+BEGIN_SRC haskell
+data Customer = Customer String String String Integer Integer
+
+bob = Customer "Bob" "Hope" "bob@hope.com" 127364544 123456789
+#+END_SRC
+
+* Records
+
+Notice that the type and its constructor have the same name -- this is
+not required but customary when there is only one constructor.
+
+#+BEGIN_SRC haskell
+data Customer = Customer String String String Integer Integer
+#+END_SRC
+
+This can be a bit confusing at first, because the type and its values
+are different things that are used in different places...
+
+* Records
+
+Now if we want to retrieve a customer's email address we need to make an
+accessor (or getter) function:
+
+#+BEGIN_SRC haskell
+email :: Customer -> String
+email (Customer _ _ e _ _) = e
+#+END_SRC
+
+We will need one of these for every field in =Customer=. It's pretty
+nasty...
+
+* Records
+
+We can use the syntax to get around this. A record is a data constructor
+with named fields. Accessor functions are created automatically:
+
+#+BEGIN_SRC haskell
+data Customer = Customer { firstName :: String,
+   lastName :: String,
+   email :: String,
+   phoneNumber :: Integer,
+   ccNumber :: Integer}
+
+bob = Customer {firstName = "bob", lastName="hope", 
+email="bob@hope.com", phoneNumber=1273645444, 
+ccNumber=123456789}
+
+> email bob
+"bob@hope.com"
+#+END_SRC
+
+* Records
+
+If we have a record we can update its fields. 
+
+#+BEGIN_SRC haskell
+> bob { lastName = "Dobbs" , email = "bob@dodds.com" }
+Customer {firstName = "bob", lastName="Dodds", 
+email="bob@dodds.com", phoneNumber=1273645444, 
+ccNumber=123456789}
+#+END_SRC
+
+Note that we aren't really making a change to =bob=, we are creating
+a new record based on =bob= but with the given differences.
+
+* Modules
+
+Haskell's module system allows you to import and export definitions from
+one script to another. When you have worked on scripts so far, they have
+had simple module names:
+
+#+BEGIN_SRC haskell
+module Exercises where
+...
+#+END_SRC
+
+* Modules
+
+As your programs get bigger it makes sense to modules inside other
+modules. For instance, if we have the folder structure
+
+#+BEGIN_SRC haskell
+CI505/
+CI505/Labs/
+CI505/Assignments
+CI505/Assignments/Assignment1.hs
+#+END_SRC
+
+Then we can declare the module for the script in =Assignment1.hs= like
+this:
+
+#+BEGIN_SRC haskell
+module CI505.Assignments.Assignment1 where
+...
+#+END_SRC
+
+* Importing from other modules
+
+Inside this script we can import part of the standard library from
+module such as =Data.Char=, which contains useful functions for dealing
+with =Char=:
+
+#+BEGIN_SRC haskell
+module CI505.Assignments.Assignment1 where
+import Data.Char
+...
+#+END_SRC
+
+This means that all data types, type constructors and function
+definitions exported by =Data.Char= are now available.
+
+* Importing from other modules
+
+If we only want to import certain definitions we can list them:
+
+#+BEGIN_SRC haskell
+module CI505.Assignments.Assignment1 where
+import Data.Char (isSpace, isLower, isUpper)
+...
+#+END_SRC
+
+* Importing from other modules
+
+We might also want to import everything certain definitions:
+
+#+BEGIN_SRC haskell
+module CI505.Assignments.Assignment1 where
+import Data.Char hiding (isNumber, isDigit)
+...
+#+END_SRC
+
+This is useful when we want to avoid name clashes -- i.e., we want to
+make our own functions called =isNumber= and =isDigit=.
+
+* Modules
+
+An alternative to this is to import a module using a qualified name. For
+example,
+
+#+BEGIN_SRC haskell
+import qualified Data.Char 
+#+END_SRC
+
+This means that we can refer to the =isNumber= function in =Data.Char=
+by =Data.Char.isNumber=. A neater alternative is to give the qualified
+import a new name:
+
+#+BEGIN_SRC haskell
+import qualified Data.Char as C
+#+END_SRC
+
+allowing us to refer to =C.isNumber=.
+
+* Abstract data types
+
+We can control what is exported from our own modules. This allows us to
+define the interface to our modules, the parts that we want people to
+use, and hide its inner workings.
+
+Say we want people to be able to use our definition of binary trees, but
+we want to hide some utility functions we have written over them. We
+also want them to use functions provided by us to make new trees, rather
+than using the constructors directly.
+
+This will allow us to control how trees are constructed, and to come
+back and change the way it works later on without requiring the users of
+our module to change any of their code.
+
+* Abstract data types
+
+We provide a list of what we want to be exported after the module
+name:
+
+#+BEGIN_SRC haskell
+module CI505.Tree (Tree, getLeaf, getBranch) where
+
+data Tree a = Branch a (Tree a) (Tree a) | Leaf a
+
+getLeaf :: a -> Tree a
+getLeaf x = Leaf x
+
+getBranch :: a -> Tree a -> Tree a -> Tree a
+getBranch x l r = Branch x l r
+
+countNodes :: Tree a -> Int
+countNodes (Branch _ l r) = 1 + (countNodes l) + (countNodes r)
+countNodes (Leaf _)   = 1
+#+END_SRC
+
+* Abstract data types
+
+#+BEGIN_SRC haskell 
+module CI505.Tree (Tree, getLeaf, getBranch) where
+#+END_SRC
+
+The module definition says that we want to export the =getLeaf= and
+=getBranch= functions, and the of =Tree= but not its . So any time a
+user want to make a new =Tree=, they have to use one of the functions
+provided. This is what it means to be an .
+
+If we want to export =Tree= and its constructors we can do that too:
+
+#+BEGIN_SRC haskell
+module CI505.Tree (Tree(..), getLeaf, GetBranch) where
+#+END_SRC
+
+* Next week
+
+Traversing data structures such as lists and trees and, more generally,
+/folding/ them up!

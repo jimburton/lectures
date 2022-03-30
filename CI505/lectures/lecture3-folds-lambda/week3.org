@@ -1,0 +1,778 @@
+* Folding lists
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/folding.jpg]]
+#+END_center
+
+* A familiar pattern of recursion
+
+We've seen a lot of functions over lists made up of two equations that
+use pattern matching:
+
+- one pattern for the empty list,
+
+- one pattern for the case when the list has something in it:
+
+* A familiar pattern of recursion
+
+#+BEGIN_SRC haskell
+sum :: Num a => [a] -> a
+sum [] = 0
+sum (x:xs) = x + sum xs
+
+product :: Num a => [a] -> a
+product [] = 1
+product (x:xs) = x * product xs
+#+END_SRC
+
+* Primitive recursion
+
+This idea is called /primtive recursion/. 
+
+The case for the empty list is called the /base case/ and the case for
+a list with something in it is called the /recursive case/. 
+
+Primitive recursion is closely related to /proof by induction/.
+
+* Primitive recursion
+
+In general, these primitive recursive functions over lists are
+/reducing/, or /folding/, a list down to a single value. 
+
+A function, =f=, that does this has the type
+
+#+BEGIN_SRC haskell
+f :: [a] -> b
+#+END_SRC
+
+(In the case of =sum=, =a= and =b= happened to have the same type.)
+
+* Folding
+
+As programmers, whenever we see a pattern being repeated in our code, we
+want to make a new, reusable abstraction for it.
+
+This is that the functions do.
+
+They encapsulate the idea of applying a function that reduces a list to
+a single value, and require a first (or last) value for the base case
+(e.g., 0, in the case of sum).
+
+* The family of fold functions
+
+There are several standard functions in Haskell, ones which start at the
+LHS of the list, ones which start at the right, and ones which expect
+that the input list be non-empty.
+
+Let's start with =foldl=, which folds down the list from the left:
+
+#+BEGIN_SRC haskell
+foldl :: (b -> a -> b) -> b -> [a] -> b
+#+END_SRC
+
+: this is /not/ the real type of =foldl=, which is explained later!
+
+* Folding from the left
+
+#+BEGIN_SRC haskell
+foldl :: (b -> a -> b) -> b -> [a] -> b
+#+END_SRC
+
+=foldl= takes a binary function, a starting value, and a list.
+
+The function is applied to the starting value and the first element in
+the list, if there is one. We can rewrite =sum= using =foldl=:
+
+#+BEGIN_SRC haskell
+sum xs = foldl (\acc x -> acc + x) 0 xs
+#+END_SRC
+
+* Writing =sum= as a fold
+
+#+BEGIN_SRC haskell
+sum xs = foldl (\acc x -> acc + x) 0 xs
+#+END_SRC
+
+What's happening here?
+
+The anonymous function takes two arguments, the and an element from the
+list, and adds them together.
+
+The result is a new accumulator, which will be the first argument when
+the function is applied to the next item in the list.
+
+* Writing =sum= as a fold
+
+#+BEGIN_SRC haskell
+foldl :: (b -> a -> b) -> b -> [a] -> b
+#+END_SRC
+
+Note that the type of the accumulator, =b=, can be (but doesn't have to
+be) different to the type of the values in the list.
+
+In the case of =sum=, =a= and =b= are the same type.
+
+#+BEGIN_SRC haskell
+sum xs = foldl (\acc x -> acc + x) 0 xs
+#+END_SRC
+
+* Writing =sum= as a fold
+
+Our new version of =sum= works like this:
+
+#+BEGIN_SRC haskell
+> sum [1, 2, 3, 4]
+0 + 1 [2, 3, 4]
+1 + 2 [3, 4]
+3 + 3 [4]
+6 + 4
+10
+#+END_SRC
+
+This gives the spirit of how =foldl= works, but we'll have to see the
+definition before we can see what it actually does.
+
+* =foldl=
+
+=foldl= is defined in the Prelude. One way to define it:
+
+#+BEGIN_SRC haskell
+foldl :: (b -> a -> b) -> b -> [a] -> b
+foldl f x [] = x
+foldl f x (y:ys) = foldl f (f x y) ys
+#+END_SRC
+
+* Arguments to =foldl=
+
+In our definition of =sum=, the anonymous function takes two arguments
+and adds them together.
+
+Sounds like =(+)=!
+
+So let's make =sum= a bit neater:
+
+#+BEGIN_SRC haskell
+sum xs = foldl (\acc x -> acc + x) 0 xs
+
+-- same as
+
+sum xs = foldl (+) 0 xs
+#+END_SRC
+
+* Expanding a call to =foldl=
+
+Now we can really see what really happens when we apply =sum=:
+
+#+BEGIN_SRC haskell
+> sum [1, 2, 3, 4]
+foldl (+) 0 [1, 2, 3, 4]
+foldl (+) (0 + 1) [2, 3, 4]
+foldl (+) ((0 + 1) + 2) [3, 4]
+foldl (+) (((0 + 1) + 2) + 3) [4]
+foldl (+) ((((0 + 1) + 2) + 3) + 4) []
+((((0 + 1) + 2) + 3) + 4)
+10
+#+END_SRC
+
+* What does =foldl= *do*?
+
+Remember that the syntax =[1, 2, 3, 4]= is really syntactic sugar for
+using the (=:=) operator to cons values onto the empty list:
+
+#+BEGIN_SRC haskell
+1 : (2 : (3 : (4 : [])))
+#+END_SRC
+
+Looking at the second-to-last expression in evaluating
+=sum [1, 2, 3, 4]= we can see that we have replaced (=:=) with (=+=):
+
+#+BEGIN_SRC haskell
+1 : 2 : 3 : 4 : []
+((((0 + 1) + 2) + 3) + 4)
+#+END_SRC
+
+* Fancy a curry?
+
+Note that we can use to leave out the list argument in our definition of
+=sum=:
+
+#+BEGIN_SRC haskell
+sum :: [Int] -> Int
+sum xs = foldl (+) 0 xs
+-- same as
+sum = foldl (+) 0
+#+END_SRC
+
+The second definition is "waiting" for its list parameter -- it knows to
+expect it because of the type signature.
+
+In general, we can apply this idea whenever the parameter that we are
+leaving out would have been the last thing on the RHS.
+
+* Folds are flexible
+
+All of the other primitive recursive functions we've seen can be defined
+using a left fold:
+
+#+BEGIN_SRC haskell
+length :: [a] -> Int
+length = foldl (\acc x -> acc + 1) 0 
+
+product :: [Int] -> Int
+product = foldl (*) 1 
+
+and :: [Bool] -> Bool
+and = foldl (&&) True 
+
+or :: [Bool] -> Bool
+or = foldl (||) False 
+#+END_SRC
+
+* Folding from the right
+
+We can also fold in the other direction, starting at the RHS, or end, of
+the list using =foldr=:
+
+#+BEGIN_SRC haskell
+foldr :: (a -> b -> b) -> b -> [a] -> b
+foldr f x [] = x
+foldr f x (y:ys) = f y (foldr f x ys)
+#+END_SRC
+
+Note that the order of arguments to the binary function is reversed: the
+value from the list comes first, followed by the accumulator.
+
+* What does =foldr= *do*?
+
+When we apply the function =foldr f x= to a list, e.g. =[1, 2, 3, 4]=,
+which is really
+
+#+BEGIN_SRC haskell
+1 : (2 : (3 : (4 : [])))
+#+END_SRC
+
+we replace cons (=:=) with =f= and =[]= with =x=:
+
+#+BEGIN_SRC haskell
+1 `f` (2 `f` (3 `f` (4 `f` x)))
+#+END_SRC
+
+(Recall that =‘f‘= is the syntax for applying a function, =f=, as an
+function, or one which comes inbetween its two parameters.)
+
+* Evaluating a call to =foldr=
+
+If we had defined =sum= using =foldr= instead of =foldl=, this would be
+the sequence of expressions in our running example:
+
+#+BEGIN_SRC haskell
+> sum [1, 2, 3, 4]
+foldr (+) 0 [1, 2, 3, 4]
+1 + (foldr (+) 0 [2, 3, 4])
+1 + (2 + (foldr (+) 0 [3, 4]))
+1 + (2 + (3 + (foldr (+) 0 [4])))
+1 + (2 + (3 + (4 + (foldr (+) 0 []))))
+1 + (2 + (3 + (4 + (0))))
+#+END_SRC
+
+Compare this to the last expression when using =foldl=:
+
+#+BEGIN_SRC haskell
+((((0 + 1) + 2) + 3) + 4)
+#+END_SRC
+* Folds that return lists
+
+#+BEGIN_SRC haskell
+foldr :: (a -> b -> b) -> b -> [a] -> b
+#+END_SRC
+
+We have already that said that the types of the accumulator and the
+values in the list may or may not be the same. What's more, the
+accumulator might not be a "simple" value, like an =Int= or =Bool=. =b=
+could be any type, such as a list:
+
+#+BEGIN_SRC haskell
+map :: (a -> b) -> [a] -> [b]
+map f = foldr (\x acc -> f x : acc) []
+
+filter :: (a -> Bool) -> [a] -> [a]
+filter p = foldr 
+(\x acc -> if p x then x : acc else acc) []
+#+END_SRC
+
+* Folds that return tuples
+
+We can sometimes use a fold to avoid traversing a list more than once.
+Here is a function that calculates the /length/ of a list of integers
+and the /sum/ of its contents:
+
+#+BEGIN_SRC haskell
+sumlength :: [Int] -> (Int, Int)
+sumlength = foldl (\(y, z) x -> (x + y, 1 + z)) (0, 0)
+
+> sumlength [1, 2, 3, 4]
+(10, 4)
+#+END_SRC
+
+The alternative would be to traverse the list twice, in a definition
+such as
+
+#+BEGIN_SRC haskell
+sumlength xs = (sum xs, length xs)
+#+END_SRC
+
+* Folding lazily
+
+Haskell is /lazy/. 
+
+This means that when we use a fold, the whole list is traversed before
+anything is evaluated[fn:1]. 
+
+In our =sum= example this meant we ended up with the following (a
+thunk is an unevaluated expression):
+
+#+BEGIN_SRC haskell
+((((0 + 1) + 2) + 3) + 4)
+#+END_SRC
+
+If we call =sum= on a long list, we will end up with lots of thunks,
+meaning we won't be making very effective use of memory.
+
+* Folding strictly
+
+Fortunately, there is a version of =foldl=, called =foldl’=:
+
+#+BEGIN_SRC haskell
+foldl' :: (a -> b -> a) -> a -> [b] -> a
+foldl' f x [] = x
+foldl' f x (y:ys) = let z = f x y in z `seq` foldl' f z ys
+#+END_SRC
+
+The =seq= function forces the evaluation of its first argument. This
+means thunks are evaluated straight away.
+
+* Folding strictly
+
+Using =foldl’=:
+
+#+BEGIN_SRC haskell
+sum xs = foldl' (+) 0 xs
+
+> sum [1, 2, 3, 4]
+foldl' (+) 0 [1, 2, 3, 4]
+let z = 0 + 1 in z `seq` foldl' (+) z [2, 3, 4]
+foldl' (+) 1 [2, 3, 4]
+...
+#+END_SRC
+
+There are strict versions of the other fold functions too, e.g.
+=foldr’=.
+
+unless you have a reason to do otherwise.
+
+* Folding infinitely
+
+Working with infinite lists, or streams, is a common thing to do in
+Haskell.
+
+Can we fold streams?
+
+At first it would seem the only possible answer is -- a fold returns a
+value when it has reached the end of the list...
+
+However, =foldr= can, in fact, be used with streams!
+
+* Folding infinitely
+
+It may seem surprising to think that a right fold on an infinite list
+could return a value.
+
+=foldr= works from the right, and in the case of an infinite list there
+is no right!
+
+Actually, describing =foldr= as "folding from the right" (as I did
+earlier) gives an intuition which is only partly correct.
+
+Actually, it's better to think of =foldr= as doing constructor
+replacement on the list.
+
+* Folding infinitely
+
+Here we are, merrily right-folding a function over an infinite list and
+returning some values...
+
+#+BEGIN_SRC haskell
+> take 10 $ foldr (\x acc -> x : 10*x : acc) [] [1..]
+[1,10,2,20,3,30,4,40,5,50]
+#+END_SRC
+
+Let's check the definition of =foldr= again:
+
+#+BEGIN_SRC haskell
+foldr f x [] = x
+foldr f x (y:ys) = f y (foldr f x ys)
+#+END_SRC
+
+In the inductive case, .
+
+* Folding infinitely
+
+#+BEGIN_SRC haskell
+foldr f x [] = x
+foldr f x (y:ys) = f y (foldr f x ys)
+#+END_SRC
+
+Since Haskell is lazy the calls to =foldr= continue .
+
+In our example we passed an anonymous function to =foldr= in which the
+second argument is never used:
+
+#+BEGIN_SRC haskell
+foldr (\x acc -> x : 10*x : acc) [] [1..]
+#+END_SRC
+
+* Folding infinitely
+
+Contrast this with =foldl=, which passes control to itself (not to =f=),
+until it reaches the end of the list:
+
+#+BEGIN_SRC haskell
+foldl f x [] = x
+foldl f x (y:ys) = foldl f (f x y) ys
+#+END_SRC
+
+* Folding trees
+  :PROPERTIES:
+  :CUSTOM_ID: folding-trees
+  :END:
+
+* There is more to recursion than lists
+
+A list is just one type of recursive data structure. We've seen others,
+such as binary trees:
+
+#+BEGIN_SRC haskell
+data Tree a = Branch a (Tree a) (Tree a) | Leaf a
+#+END_SRC
+
+There are lots of times we might want to traverse a tree and return a
+single value, such as counting the nodes in the tree, or finding the
+maximum value in it.
+
+So it makes sense to think about too.
+
+* Folding trees
+
+#+BEGIN_SRC haskell
+data Tree a = Branch a (Tree a) (Tree a) | Leaf a
+
+foldTree :: (a -> b -> b) -> b -> Tree a -> b
+foldTree f x (Leaf y) = f y x 
+foldTree f x (Branch y l r) = let z = foldTree f x l in
+  f y (foldTree f z r) 
+#+END_SRC
+
+Note that this is a .
+
+* Folding trees
+
+Let's look at a function defined using =foldTree=:
+
+#+BEGIN_SRC haskell
+myTree = Branch 42 (Branch 9 (Leaf 1) (Leaf 2)) (Leaf 3)
+
+sumTree :: Num a => Tree a -> a
+sumTree = foldTree (+) 0
+
+> sumTree myTree
+#+END_SRC
+
+* Evaluating a call to =foldTree=
+
+#+BEGIN_SRC haskell
+> foldTree (+) 0 (Branch 42 (Branch 9 (Leaf 1) (Leaf 2)) (Leaf 3))
+
+let z = foldTree (+) 0 (Branch 9 (Leaf 1) (Leaf 2)) in
+  42 + (foldTree (+) z (Leaf 3)) 
+
+42 + (3 + (foldTree (+) 0 (Branch 9 (Leaf 1) (Leaf 2)))) 
+
+let z = foldTree (+) 0 (Leaf 1) in
+  42 + (3 + (9 + (foldTree (+) z (Leaf 2)))) 
+
+42 + (3 + ( 9 + (2 + (foldTree (+) 0 (Leaf 1)))))
+
+42 + (3 + ( 9 + (2 + (1 + 0))))
+
+57
+#+END_SRC
+
+* Order of traversal
+
+#+BEGIN_SRC haskell
+...
+
+42 + (3 + ( 9 + (2 + (1 + 0))))
+
+57
+#+END_SRC
+
+Note that we could have chosen a different order in which to visit the
+nodes, e.g. by drilling down on the right before the left.
+
+This is an traversal, in which we visit the root first, then the
+left-hand child, then the right.
+
+* Folding a tree into a list
+
+=toList= collects all the node labels in a tree into a list:
+
+#+BEGIN_SRC haskell
+
+myTree = Branch 42 (Branch 9 (Leaf 1) (Leaf 2)) (Leaf 3)
+
+toList :: Tree a -> [a]
+toList = foldTree (:) []
+
+> toList myTree
+[42,3,9,2,1]
+#+END_SRC
+
+* =Foldable= types
+
+So we can fold over lists and over trees.
+
+Actually, we might want to fold over any data structure that embodies
+this idea of primitive recursion -- i.e. that has a base case (such as a
+leaf, or the empty list) and a recursive case (a branch, or a non-empty
+list).
+
+This is what the =Foldable= typeclass is for.
+
+* =Foldable= types
+
+To make our =Tree= datatype an instance of =Foldable=, we need to
+provide a right fold function over it, which we've already done.
+
+#+BEGIN_SRC haskell
+import Data.Foldable
+
+instance Foldable Tree where
+   foldr = foldTree
+#+END_SRC
+
+Now we can use =Tree= wherever something foldable is expected.
+
+* =Foldable= in the =Prelude=
+
+Rather than being defined just for lists, the standard fold functions
+are defined in terms of the =Foldable= typeclass:
+
+#+BEGIN_SRC haskell
+foldl :: Foldable t => (b -> a -> b) -> b -> t a -> b
+#+END_SRC
+
+Similarly, many of the list functions we have seen such as =map= and
+=filter= are not only for lists.
+
+These are defined in terms of the more general idea of things that can
+be from left to right, the =Traversable= typeclass.
+
+* Folds are everywhere!
+
+Folding is one of the most fundamental techniques in functional
+programming. Once you have some experience of writing functions with
+folds, you'll find that you can express many ideas more simply and
+succinctly this way.
+
+For further reading, see the classic (and quite easy to read) paper /A
+tutorial on the universality and expressiveness of fold/ by Graham
+Hutton: [[http://www.cs.nott.ac.uk/~gmh/fold.pdf]].
+
+* Case study
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/coins.JPG]]
+#+END_center
+
+* Case study
+
+We have been asked to write a simple command-line program that
+calculates the coins required to make up a certain amount of change.
+
+The user enters an integer and the program gives a list of the fewest
+coins that add up to that amount:
+
+#+BEGIN_SRC haskell
+> Enter a number and I'll count out the change
+123
+> 1 pound coin, 1 twenty pence piece, 1 two pence piece, 1 pence
+> Enter a number and I'll count out the change
+301
+> 3 pound coins, 1 pence
+#+END_SRC
+
+* Coins
+
+The first thing we will need is a data type for coins:
+
+#+BEGIN_SRC haskell
+data Coin = Pound | Fifty | Twenty | Ten | Five | Two | Penny
+   deriving (Eq, Ord, Enum, Show)
+#+END_SRC
+
+* Coins
+
+We want to associate each coin with its numeric value.
+
+Because =Coin= is an instance of =Enum= we can automatically create
+lists of them:
+
+#+BEGIN_SRC haskell
+> [Pound .. Penny]
+[ Pound, Fifty, Twenty, Ten, Five, Two, Penny ]
+#+END_SRC
+
+This makes it easy to make a list of =(Coin, Int)= pairs by two lists.
+
+#+BEGIN_SRC haskell
+-- | Pairs each coin with its monetary value in pennies.  
+values :: [(Coin, Int)]
+values = zip [Pound .. Penny] [100, 50, 20, 10, 5, 2, 1]
+#+END_SRC
+
+* Making change
+
+Now, given a number, =i=, we want to know what is the largest coin whose
+value is less than or equal to =i=:
+
+#+BEGIN_SRC haskell
+-- | Finds the highest denomination coin that is smaller than the argument. 
+getCoin :: Int -> (Coin, Int)
+
+> getCoin 51
+( Fifty, 50)
+#+END_SRC
+
+* Making change
+
+We can make a list of all coins and their values, then take the
+first one that is less than or equal to the argument.
+
+#+BEGIN_SRC haskell
+getCoin :: Int -> (Coin, Int)
+getCoin i = head $ dropWhile (\(c,n) -> n>=i) values
+#+END_SRC
+
+(NB: the dollar saves us writing brackets around the argument to
+=head=.)
+
+* Making change
+
+The function that is passed to =dropWhile= takes the second element
+from the pair and compares it to =i=. We can do this /point-free/,
+i.e. without naming the argument. If you prefer the original, stick to
+that. 
+
+#+BEGIN_SRC haskell
+getCoin i = head $ dropWhile (\(c,n) -> n>=i) values
+
+-- equivalent to 
+
+getCoin i = head $ dropWhile ((>=i) . snd) values
+#+END_SRC
+
+* Making change
+
+Now we want a function that takes a number, =n=, and takes as many of
+a given coin from it that it can and returns the remainder:
+
+#+BEGIN_SRC haskell
+coinDiv :: Int -> (Coin, Int) -> ([Coin], Int)
+
+> coinDiv 99 (Fifty, 50)
+( [ Fifty ], 49 )
+> coinDiv 199 (Fifty, 50)
+( [ Fifty, Fifty, Fifty], 49 )
+#+END_SRC
+
+* Making change
+
+The =divMod= function is useful here. It tells us how many times the
+value of the coin, =i=, goes into =n= and what is the remainder.
+
+#+BEGIN_SRC haskell
+coinDiv :: Int -> (Coin, Int) -> ([Coin], Int)
+coinDiv n (c,i) = let (d,m) = n `divMod` i in
+                  (replicate d c, m)
+#+END_SRC
+
+* Making change
+
+Now we can take a number and use =coinDiv= repeatedly to build a list of
+the largest coins that can be taken from it, until we are down to
+zero:
+
+#+BEGIN_SRC haskell
+makeChange :: Int -> [Coin]
+makeChange n | n < 1     = []
+             | otherwise = let (cs, rm) = coinDiv n (getCoin n) in
+                             cs ++ makeChange rm
+#+END_SRC
+
+* The user interface
+
+Next we need a way for users to interact with the program. We haven't
+covered *IO* yet but it will look like this:
+
+#+BEGIN_SRC haskell
+main :: IO ()
+main = do
+  putStrLn "Enter a number and I'll count out the change"
+  str <- getLine
+  if null str then return ()
+  else do let coins = makeChange (read str::Int)
+  putStrLn coins
+  main
+#+END_SRC
+
+* Wrapping it up as a piece of software
+
+Now that we have written a script we can use in the interpreter:
+
+#+BEGIN_EXAMPLE 
+$ ghci Main.hs 
+GHCi, version 8.6.5: http://www.haskell.org/ghc/  :? for help
+Ok, one module loaded.
+> main
+Enter a number and I'll count out the change
+7
+1 five pence piece, 1 two pence piece
+#+END_EXAMPLE
+
+* Wrapping it up as a piece of software
+
+Or we can compile it and create a stand-alone executable:
+
+#+BEGIN_EXAMPLE
+$ ghc -o change Main.hs 
+Loaded package environment from /home/jb259/.ghc/x86_64-linux-8.6.5/environments/default
+[1 of 1] Compiling Main ( src/Main.hs, src/Main.o )
+Linking change ...
+$ ./change
+Enter a number and I'll count out the change
+9
+1 five pence piece, 2 two pence pieces
+#+END_EXAMPLE
+
+* Cabal
+
+This might be OK for such a simple program as =change=...
+
+But if we want to make a more complex project or one that is easy to
+distribute, we can use the Haskell , *=cabal=*.
+
+We will learn a lot more about =cabal= later.
+
+This little project is online at =https://github.com/jimburton/change=

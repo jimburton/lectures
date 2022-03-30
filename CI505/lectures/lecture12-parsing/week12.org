@@ -1,0 +1,829 @@
+* Parsing arithmetic
+
+** and evaluating arithmetic expressions
+
+* Parsing
+
+Last week we saw that is the process of transforming an input stream
+into a different structure of some sort.
+
+Last week the input was a log file in a known format, with the output being a
+hierarchy of Haskell ADTs. We used the =attoparsec= library.
+
+The canonical parsing problem is that of reading in a source file
+containing a program and parsing that stream of characters into
+/lexical tokens/ and constructing an /abstract syntax tree/.
+
+* Parsing arithmetic
+
+In the language of arithmetic, the possible lexical tokens are
+comprised of the /integers/, /identifiers/, the /binary operators/
+=+=, =-=, =*= and =/=, and /brackets/ that must be balanced.
+
+In the expression =2 * (x + 7)=, the lexical tokens are =2=, =*=, =(=,
+=x=, and so on.
+
+* Parse trees
+
+Putting those tokens into a tree that represents the structure of the
+expression results in the following /parse tree/ or /abstract syntax
+tree (AST):
+
+#+BEGIN_EXAMPLE 
+  *
+ / \
+2   +
+   / \
+  2   7
+#+END_EXAMPLE
+
+Using an AST separates the act of /parsing/ the input from the stages
+of analysing and evaluating the expression.
+
+* The target datatypes
+
+In our code, the AST is a tree structure of ADTs. Presume the following
+data types:
+
+#+BEGIN_SRC haskell
+data Exp = Val Int 
+           | Id String 
+           | BinOp
+
+data BinOp = Plus Exp Exp 
+           | Minus Exp Exp 
+           | Mult Exp Exp 
+           | Div Exp Exp  
+#+END_SRC
+
+* Arithmetic to Haskell
+
+Then the expression =2 * (2 + 7)= yields the following AST, graphically
+and in code:
+
+#+BEGIN_EXAMPLE
+     Mult
+   /      \
+(Val 2)   Plus
+         /    \
+    (Id "x")  (Val 7)
+#+END_EXAMPLE
+
+#+BEGIN_SRC haskell
+Mult (Val 2) (Plus (Id "x") (Val 7))
+#+END_SRC
+
+* Parsing programming languages
+
+To carry out the same process for a general purpose programming language
+is a large (and solved) task.
+
+Instead of writing a program that matches all aspects of the syntax,
+as we did last week, we could use a *parser generator*, like =happy=
+(Haskell) or =JavaCC=.
+
+Parser generators allow us to define the syntax of the language and the
+data types in our AST, then automatically generate a parser for it.
+
+* Scheme
+
+To learn more about using parser combinator libraries in Haskell,
+however, we will write a *parser and evaluator* for a simple language
+ourselves.
+
+*=Scheme=* is one of the main dialects of =lisp=. It is primarily a
+functional language but is not pure.
+
+In common with languages like JavaScript and Python, it is
+/dynamically typed/.
+
+It has very simple syntax, which is largely just an extension of the
+lambda calculus.
+
+* Structure of Scheme
+
+Scheme is written as prefix expressions, with parentheses for
+grouping.
+
+#+BEGIN_SRC scheme
+(if (> x 0)
+  (* 2 (+ x 7))
+  (* 2 7))
+#+END_SRC
+
+There is no distinction between /expressions/ (like the arithmetic
+above) from /statements/ like =(if ...)=.
+
+This property is called /homiconicity/.
+
+* Lists and dotted list
+
+The most general data structure is the /dotted list/, e.g. =(a
+. b)=. 
+
+In Scheme terminology, =a= is the /car/ and =b= is the /cdr/.
+
+More conveniently, a /list/ in Scheme is enclosed in parentheses and
+separated by spaces:
+
+#+BEGIN_SRC scheme
+(a b (c d) (e (f g)))
+#+END_SRC
+
+Because of homoiconicity, that's all the syntax there is.
+
+* Quoted lists
+
+#+BEGIN_SRC scheme
+(a b (c d) (e (f g)))
+#+END_SRC
+
+When evaluating the list above, Scheme assumes that =a= must be
+*code*, i.e. a function.
+
+To treat the list as /data/ (i.e. just a list, not a function to be
+evaluated), we use the =list= function or the single quote syntactic
+sugar:
+
+#+BEGIN_SRC scheme
+(list (a b (c d) (e (f g))))
+
+'(a b (c d) (e (f g)))
+#+END_SRC
+
+* Scheme basics
+
+The fragment of Scheme we're looking at so far:
+
+- *Atoms*: identifiers like =x= or =foo=,
+- *Dotted lists*: e.g. =(x y . z)=,
+- *Lists*: e.g. =(x y z)=,
+- *Booleans*: =#t= and =#f=, and
+- *Strings*: "Hello, World!"
+
+
+* Read, Eval, Print, Loop
+
+Before we start to worry about parsing statements (like =if=) we can
+write a simple parser and evaluator for this fragment of the language.
+
+We are using =parsec=, very similar to =attoparsec= from last week but
+with better error messages (making =parsec= slower).
+
+The code is available at
+=https://github.com/jimburton/write-yourself-a-scheme=
+
+* Parsing Scheme
+
+Our datatypes:
+
+#+BEGIN_SRC haskell
+data LispVal = Atom   String
+             | List   [LispVal]
+             | DottedList [LispVal] LispVal
+             | Number Integer
+             | Str    String
+             | Bool   Bool
+             deriving (Eq)
+#+END_SRC
+
+* Parsing Scheme
+
+A flavour of the ASTs we will produce:
+
+| *Scheme*    | *AST*                                   |
+|-------------+-----------------------------------------|
+| =#t=        | =Bool True=                             |
+| =foo=       | =Atom “foo”=                            |
+| =(x 1 2)=   | =List [Atom “x”, Number 1, Number 2]=   |
+
+* Printing parsed expressions
+
+Making our datatype an instance of =Show=:
+
+#+BEGIN_SRC haskell
+instance Show LispVal where
+  show = renderVal
+
+renderVal :: LispVal -> String
+renderVal (Str contents)    = "\"" ++ contents ++ "\""
+renderVal (Atom name)       = name
+renderVal (Number contents) = show contents
+-- etc...
+#+END_SRC
+
+* Parsing strings
+
+As before, we create parsers for each type of expression we might
+encounter.
+
+Parsing a string means matching the opening quotation mark then
+capturing everything up to the next one:
+
+#+BEGIN_SRC haskell
+parseString :: Parser LispVal
+parseString = do
+      char '"'
+      x <- many (noneOf "\"")
+      char '"'
+      return $ Str x
+#+END_SRC
+
+Note the combinators =char=, =many=, =noneOf=.
+
+* Parsing numbers
+
+Parsing a number means reading in a series of digits as characters,
+converting them to a number with =read=, then applying the =Number=
+constructor to produce a value with the type =LispVal=.
+
+#+BEGIN_SRC haskell
+parseNumber :: Parser LispVal
+parseNumber = fmap (Number . read) $ many1 digit
+#+END_SRC
+
+We use =fmap= to run the pure function =(Number . read)= in the =Parser=
+monad context.
+
+* Parsing atoms
+
+Scheme identifiers (atoms) must begin with an alphabetic character or a
+symbol such as =&=.
+
+The remaining characters may be letters, symbols or numbers.
+
+#+BEGIN_SRC haskell
+symbol :: Parser Char
+symbol = oneOf "!#$%&|*+-/:<=>?@^_~"
+#+END_SRC
+
+* Parsing atoms
+
+Now we can parse atoms like =foo= and the two special boolean values.
+
+#+BEGIN_SRC haskell
+parseAtom :: Parser LispVal
+parseAtom = do 
+     first <- letter <|> symbol
+     rest <- many (letter <|> digit <|> symbol)
+     let atom = first:rest
+     return $ case atom of 
+                   "#t" -> Bool True
+                   "#f" -> Bool False
+                   _    -> Atom atom
+#+END_SRC
+
+* Parsing lists
+
+To parse lists, we first parse a series of expressions separated by
+whitespace (=sepBy parseExpr spaces=) and then apply the =List=
+constructor to it within the =Parser= monad.
+
+#+BEGIN_SRC haskell
+spaces :: Parser ()
+spaces = skipMany1 space
+
+parseList :: Parser LispVal
+parseList = fmap List $ sepBy parseExpr spaces
+#+END_SRC
+
+Note the use of =parseExpr=, which we haven't defined yet.
+
+* Parsing dotted lists
+
+A dotted list is one in which the final element is preceded by a full
+stop.
+
+#+BEGIN_SRC haskell
+parseDottedList :: Parser LispVal
+parseDottedList = do
+    head <- endBy parseExpr spaces
+    tail <- char '.' >> spaces >> parseExpr
+    return $ DottedList head tail
+#+END_SRC
+
+* Parsing quoted lists
+
+To parse a quoted list such as =’(1 2 3)=, we identify the quote
+character then consume the following expression:
+
+#+BEGIN_SRC haskell
+parseQuoted :: Parser LispVal
+parseQuoted = do
+    char '\''
+    x <- parseExpr
+    return $ List [Atom "quote", x]
+#+END_SRC
+
+* Putting it together
+
+Now we can combine these parsers to make one that can read any
+expression in our current fragment of Scheme.
+
+#+BEGIN_SRC haskell
+parseExpr :: Parser LispVal
+parseExpr = parseAtom
+         <|> parseString
+         <|> parseNumber
+         <|> parseQuoted
+         <|> do char '('
+                x <- try parseList <|> parseDottedList
+                char ')'
+                return x
+#+END_SRC
+
+* Running the parser
+
+Now we can run the parser using Parsec's =parse= function, which returns
+an =Either= value:
+
+#+BEGIN_SRC haskell
+readExpr :: String -> String
+readExpr input = case parse parseExpr "lisp" input of
+    Left err  -> "No match: " ++ show err
+    Right val -> "Found " ++ show val
+#+END_SRC
+
+* Evaluating Scheme
+
+Now that we can parse this fragment of Scheme, we can start
+/evaluating/ programs. To evaluate strings, numbers, booleans and
+quoted lists, we just return the value itself:
+
+#+BEGIN_SRC haskell
+eval :: LispVal -> LispVal
+eval val@(String _)             = val
+eval val@(Number _)             = val
+eval val@(Bool _)               = val
+eval (List [Atom "quote", val]) = val
+#+END_SRC
+
+Note the use of =@= in the patterns.
+
+* Evaluating lists
+
+If a list is not quoted, then the first element in the list is the name
+of a function and subsequent expressions are the arguments passed to
+it.
+
+In this equation of =eval= we recursively apply =eval= to each of the
+arguments then pass it and the name of the function to a helper
+function, =apply=.
+
+#+BEGIN_SRC haskell
+eval (List (Atom func : args)) = apply func $ map eval args
+#+END_SRC
+
+* Evaluating lists
+
+The =apply= function takes the name of a function and a list of
+arguments. 
+
+We make a dictionary that associates the name with the actual
+function.
+
+#+BEGIN_SRC haskell
+apply :: String -> [LispVal] -> LispVal
+apply func args = maybe (Bool False) ($ args) $ lookup func primitives
+
+primitives :: [(String, [LispVal] -> LispVal)]
+primitives = [("+", numericBinop (+)),
+               ("-", numericBinop (-)),
+               -- ...
+               ]
+#+END_SRC
+
+* Evaluating primitive functions
+
+Our primitive functions are arithmetic operators. 
+
+In the context of Scheme, they aren't actually binary because we can
+supply a variable number of arguments, e.g. =(+ 1 2 3)=.
+
+=numericBinop= takes a primitive Haskell function and wraps it with code
+to unpack the argument list, apply the function and wrap the result up
+in our =Number= constructor.
+
+#+BEGIN_SRC haskell
+numericBinop :: (Integer -> Integer -> Integer) -> [LispVal] -> LispVal
+numericBinop op params = Number $ foldl1 op $ map unpackNum params
+#+END_SRC
+
+* Evaluating primitive functions
+
+The =unpackNum= function transforms =LispVal= types to numbers.
+
+#+BEGIN_SRC haskell
+unpackNum :: LispVal -> Integer
+unpackNum (Number n) = n
+unpackNum (String n) = 
+      let parsed = reads n :: [(Integer, String)] in 
+            if null parsed 
+            then 0
+            else fst $ parsed !! 0
+unpackNum (List [n]) = unpackNum n
+unpackNum _ = 0
+#+END_SRC
+
+* Evaluating Scheme
+
+Now =readExpr= needs to return a =LispVal= rather than a =String= and we
+make a =main= function that evaluates after parsing.
+
+#+BEGIN_SRC haskell
+readExpr :: String -> LispVal
+readExpr input = case parse parseExpr "lisp" input of
+    Left err  -> Str $ "No match: " ++ show err
+    Right val -> val
+
+main :: IO ()
+main = getArgs >>= print . eval . readExpr . head
+#+END_SRC
+
+* Running the evaluator
+
+What we've done so far corresponds to the file =WYAS0.hs= in the
+repository. We can test it like this:
+
+#+BEGIN_SRC haskell
+$ cabal run week1 "2"
+2
+$ cabal run week1  "(+ 2 2)"
+4
+$ cabal run week1  "'(1 2 3)"
+(1 2 3)
+#+END_SRC
+
+* Recap
+
+=readExpr= takes a string and applies our parser to it.
+
+#+BEGIN_SRC haskell
+readExpr :: String -> LispVal
+readExpr input = case parse parseExpr "lisp" input of
+    Left err  -> Str $ "No match: " ++ show err
+    Right val -> val
+#+END_SRC
+
+* Recap
+
+=parseExpr= parses a single "simple" Lisp expression, such as =x=, 5,
+=(+ x 5)=...
+
+#+BEGIN_SRC haskell
+parseExpr :: Parser LispVal
+parseExpr = parseAtom
+         <|> parseString
+         <|> parseNumber
+         <|> parseQuoted
+         <|> do char '('
+                x <- try parseList <|> parseDottedList
+                char ')'
+                return x
+#+END_SRC
+
+* Recap
+
+The =main= function reads an expression from the command line, parses
+it, then evaluates it.
+
+#+BEGIN_SRC haskell
+main :: IO ()
+main = getArgs >>= print . eval . readExpr . head
+#+END_SRC
+
+* Recap
+
+#+BEGIN_SRC haskell
+eval :: LispVal -> LispVal
+eval val@(Str _)    = val
+eval val@(Number _) = val
+eval val@(Bool _)   = val
+eval (List [Atom "quote", val]) = val
+eval (List (Atom func : args))  = apply func $ map eval args
+#+END_SRC
+
+* Moving on
+
+By the end of this section we will have extended the interpreter to
+incorporate *exceptions* and a CLI to enter expressions, otherwise
+known as a *REPL*.
+
+#+BEGIN_SRC haskell
+$ cabal run week2
+Lisp>>> (+ 1 2 3)
+6
+Lisp>>> (oops)
+Unrecognized primitive function args: "oops"
+#+END_SRC
+
+* Incorporating exceptions
+
+So far we have been assigning default values such as =#f= or 0 when
+things go wrong.
+
+For example, if we call a functions that doesn't exist, the result will
+be =Bool False=:
+
+#+BEGIN_SRC haskell
+apply :: String -> [LispVal] -> LispVal
+apply func args = maybe (Bool False) ($ args) $ lookup func primitives
+
+$ cabal run week1 -- '(oops)'
+#f
+#+END_SRC
+
+* Exceptions
+
+We make an ADT that represents the various things that might go
+wrong...
+
+#+BEGIN_SRC haskell
+data LispError = 
+       NumArgs        Integer [LispVal]
+     | TypeMismatch   String  LispVal
+     | Parser         ParseError
+     | BadSpecialForm String  LispVal
+     | NotFunction    String  String
+     | UnboundVar     String  String
+     | Default        String
+#+END_SRC
+
+* Exceptions
+
+Next, we specify how to display errors:
+
+#+BEGIN_SRC haskell
+showError :: LispError -> String
+showError (UnboundVar message varname)  = message ++ ": " ++ varname
+showError (NumArgs expected found)      = "Expected " ++ show expected 
+                                 ++ " args; found values " ++ unwordsList found
+showError (TypeMismatch expected found) = "Invalid type: expected " ++ expected
+                                 ++ ", found " ++ show found
+-- etc...
+
+instance Show LispError where show = showError
+#+END_SRC
+
+* Exceptions
+
+We import some built-in error-handling types to make our =LispError=
+type work with them.
+
+#+BEGIN_SRC haskell
+import Control.Monad.Except
+#+END_SRC
+
+Many of our functions will now return a =LispError= or something else.
+We make a type to represent that using the =Either= convention (left for
+an error, right for a result).
+
+* Exceptions
+
+The =Either= constructor is /partially applied/ (recall the *Scrabble*
+case study).
+
+#+BEGIN_SRC haskell
+type ThrowsError = Either LispError
+#+END_SRC
+
+Now we can have functions that return an error or a =LispVal=, or an
+error or a =String=.
+
+#+BEGIN_SRC haskell
+readExpr   :: String  -> ThrowsError LispVal
+unpackStr  :: LispVal -> ThrowsError String
+unpackBool :: LispVal -> ThrowsError Bool
+#+END_SRC
+
+* Exceptions
+:PROPERTIES:
+:CUSTOM_ID: exceptions-5
+:END:
+
+The =Control.Monad.Except= API:
+
+#+BEGIN_SRC haskell
+throwError :: e -> m a
+catchError :: m a -> (e -> m a) -> m a 
+#+END_SRC
+
+* Exceptions
+
+Our new version of the =readExpr= function. Note that =return x= results
+in =Right x= in the =Either= monad context.
+
+#+BEGIN_SRC haskell
+readExpr :: String -> ThrowsError LispVal
+readExpr input = case parse parseExpr "lisp" input of
+     Left err  -> throwError $ Parser err
+     Right val -> return val
+#+END_SRC
+
+* Exceptions
+:PROPERTIES:
+:CUSTOM_ID: exceptions-7
+:END:
+
+=catchError= takes an action to try and an error-handling function in
+case things go wrong:
+
+#+BEGIN_SRC haskell
+trapError action = action `catchError` (return . show)
+#+END_SRC
+
+* Exceptions
+:PROPERTIES:
+:CUSTOM_ID: exceptions-8
+:END:
+
+We need to change the type of our primitive functions (=(+)=, =*= and so
+on), and of the helper function that we use to run them:
+
+#+BEGIN_SRC haskell
+primitives :: [(String, [LispVal] -> ThrowsError LispVal)]
+
+numericBinop :: (Integer -> Integer -> Integer) -> [LispVal] -> ThrowsError LispVal
+numericBinop op           []  = throwError $ NumArgs 2 []
+numericBinop op singleVal@[_] = throwError $ NumArgs 2 singleVal
+numericBinop op params        = mapM unpackNum params >>= return . Number . foldl1 op
+#+END_SRC
+
+* Conditional branching
+
+** That is, =if= statements
+
+* Conditional branching
+
+We can now add a clause to the =eval= function to handle =if=
+statements.
+
+#+BEGIN_SRC haskell
+eval (List [Atom "if", pred, conseq, alt]) = 
+     do result <- eval pred
+        case result of
+             Bool False -> eval alt
+             otherwise  -> eval conseq
+
+Lisp>>> (if (> 2 3) "yes" "no")
+"no"
+#+END_SRC
+
+* Functions for lists
+
+The equivalent of Haskell's =head= and =tail= are called =car= and =cdr=
+in Scheme (and other lisps). Cons (=:=) is called =cons=. Here's how
+=car= works:
+
+- =(car ’(a b c)) = a=
+- =(car ’(a)) = a=
+- =(car ’(a b . c)) = a=
+- =(car ’a) = error= - not a list
+- =(car ’a ’b) = error= - =car= only takes one argument
+
+* Functions for lists
+
+When we encounter a Scheme form like =(car arg)= we will pass =arg= to
+our =car=-handler. =cdr= and =cons= are similar.
+
+#+BEGIN_SRC haskell
+car :: [LispVal] -> ThrowsError LispVal
+car [List (x : xs)]         = return x
+car [DottedList (x : xs) _] = return x
+car [badArg]                = throwError $ TypeMismatch "pair" badArg
+car badArgList              = throwError $ NumArgs 1 badArgList
+#+END_SRC
+
+* Equality
+
+Scheme provides three ways to check whether two things are equal --
+=eq?=, =eqv?=, and =equal?=.
+
+=eq?= is the most discriminating, =equal?= the least so. We treat =eq?=
+and =eqv?= the same way.
+
+#+BEGIN_SRC haskell
+eqv :: [LispVal] -> ThrowsError LispVal
+eqv [(Bool arg1), (Bool arg2)]             = return $ Bool $ arg1 == arg2
+eqv [(Number arg1), (Number arg2)]         = return $ Bool $ arg1 == arg2
+-- etc...
+eqv [_, _]                                 = return $ Bool False
+#+END_SRC
+
+* Weakly typed equality
+
+=equal?= is similar to (====) in JavaScript -- it can be used to compare
+values with different types.
+
+=(eqv? 2 "2") = #f=, yet we'd like =(equal? 2 "2") = #t=.
+
+See the =equal?= function in =WYAS3.hs= to see how this is achieved with
+/heterogeneous lists/.
+
+* Adding primitive functions
+
+So that we can use these new functions, we add them to the list of
+primitives:
+
+#+BEGIN_SRC haskell
+primitives =
+  [ 
+  -- etc...
+  ("car", car),
+  ("cdr", cdr),
+  ("cons", cons),
+  ("eq?", eqv),
+  ("eqv?", eqv),
+  ("equal?", equal)]
+#+END_SRC
+
+* Building a REPL
+
+Until now we were only able to execute a single expression at a time.
+
+We want to make an interactive shell in which we can keep working, known
+as a *REPL* (Read-Eval-Print-Loop).
+
+We will use the =haskeline= library to make our REPL aware of history,
+e.g. up arrow to get last command, =Ctrl-R= to search the history and
+so on.
+
+* REPL
+
+We pull the code to parse and evaluate a string and trap the errors out
+of =main= into its own function:
+
+#+BEGIN_SRC haskell
+evalString :: String -> IO String
+evalString expr = return $ extractValue 
+                   $ trapError (liftM show $ readExpr expr >>= eval)
+#+END_SRC
+
+* REPL
+
+The app can be used in two ways -- supply a Scheme expression on the
+command line, or supply no arguments and enter the REPL.
+
+#+BEGIN_SRC haskell
+main :: IO ()
+main = do 
+  args <- getArgs
+  case length args of
+    0 -> runRepl
+    1 -> evalAndPrint $ head args 
+    _ -> putStrLn "Program takes only 0 or 1 argument"
+#+END_SRC
+
+* REPL
+
+Here is the function that evaluates a single expression and prints the
+result:
+
+#+BEGIN_SRC haskell
+evalAndPrint :: String -> IO ()
+evalAndPrint expr =  evalString expr >>= putStrLn
+#+END_SRC
+
+* REPL
+
+The =runRepl= function is where we use =haskeline= to wrap our REPL in a
+nice interactive prompt:
+
+#+BEGIN_SRC haskell
+runRepl :: IO ()
+runRepl = runInputT defaultSettings loop
+   where
+       loop :: InputT IO ()
+       loop = do
+           minput <- getInputLine "Lisp>>> "
+           case minput of
+               ...
+#+END_SRC
+
+* REPL
+
+=runRepl= continued...
+
+#+BEGIN_SRC haskell
+-- ...
+case minput of
+ Nothing     -> return ()
+ Just "quit" -> return ()
+ Just input  -> 
+        if null input
+        then loop
+        else do 
+             (liftIO $ evalString input) >>= outputStrLn
+             loop
+#+END_SRC
+
+* Finishing the interpreter
+
+*What's left to do?*
+
+- variables and assignment,
+- user-defined functions, and
+- the Scheme IO primitives.
+
+See https://github/jimburton/write-yourself-a-scheme for the 
+complete project.

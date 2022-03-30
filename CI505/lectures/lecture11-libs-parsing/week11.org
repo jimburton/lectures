@@ -1,0 +1,1018 @@
+* What's the problem with monads?
+
+You have now been using monads for quite a few months.
+
+That includes some types where it is impossible to escape the fact that
+this type is a monad, such as =IO=, and some where you can ignore that
+most of the time, such as =Maybe=.
+
+Monads and the concepts surrounding them are considered to be
+/difficult/.
+
+They can give the impression that Haskell is more complicated than it
+really is.
+
+* Reminder: the =Monad= typeclass
+
+=Monad= is a typeclass which specifies two important operations: =bind=,
+which is written =(>>=)=, and =return=.
+
+#+BEGIN_SRC haskell 
+class Monad m where
+  (>>=)  :: m a -> (a -> m b) -> m b
+  return ::   a               -> m a
+#+END_SRC
+
+(As you know, the typeclass specifies several other functions but we
+aren't interested in them right now.)
+
+* The =Maybe= monad
+
+And an instance of this typeclass:
+
+#+BEGIN_SRC haskell 
+class Monad m where
+  (>>=)  :: m a -> (a -> m b) -> m b
+  return :: a -> m a
+
+instance Monad Maybe where
+  (Just x) >>= f = f x
+  Nothing  >>= _ = Nothing
+
+  return x       = Just x
+#+END_SRC
+
+* Monad laws
+
+In addition to providing implementations of =(>>=)= and =return=, our
+instance has to satisfy the .
+
+#+BEGIN_SRC haskell
+return a >>= k                  =  k a
+m        >>= return             =  m
+m        >>= (\x -> k x >>= h)  =  (m >>= k) >>= h
+
+> return 1 >>= Just
+Just 1
+> Just [1, 2, 3] >>= return
+Just [1,2,3]
+#+END_SRC
+
+* So, what's the problem with monads?
+
+Even though that is a simple enough explanation, monads can undeniably
+be hard to grok.
+
+Stephen Diehl, in the excellent article /What I Wish I Knew When
+Learning Haskell/ [1] suggests three reasons for this:
+
+- Monads include several levels of indirection which is eventually
+  desugared.
+
+- Asymmetric binary infix operators for higher order functions are not
+  common in other languages (!).
+
+- Typeclass-style polymorphism is not common in other languages.
+
+[1] [[http://dev.stephendiehl.com/hask/]]
+
+* Sugar/Desugar
+
+*Do-notation* can leave the beginner thinking that monads are a way of
+dropping into a pseudo-imperative language.
+
+This fuels the associated misconception that specific instances like
+=IO= are monads in their full generality.
+
+#+BEGIN_SRC haskell
+main = do
+  x <- getLine
+  putStrLn x
+  return ()
+#+END_SRC
+
+* Sugar/Desugar
+
+Being able to manually desugar is crucial to understanding.
+
+#+BEGIN_SRC haskell
+main = do
+  x <- getLine
+  putStrLn x
+  return ()
+
+main =
+  getLine >>= \x ->
+putStrLn x >>= \_ ->
+  return ()
+#+END_SRC
+
+* A higher level abstraction than most languages offer
+
+#+BEGIN_SRC haskell
+(>>=) :: Monad m => m a -> (a -> m b) -> m b
+#+END_SRC
+
+On the left hand side of the operator we have an =m a= and on the right
+we have a function, =a -> m b=.
+
+Although some languages do have infix operators that are themselves
+higher order functions, it is still pretty rare.
+
+The =(>>=)= operator is in fact building up a much larger function by
+/composition/.
+
+* A higher level abstraction than most languages offer
+
+#+BEGIN_SRC haskell
+main =
+  getLine >>= \x ->
+  putStrLn >>= \_ ->
+  return ()
+#+END_SRC
+
+Written in prefix form, it becomes a little bit more digestible.
+
+#+BEGIN_SRC haskell
+main =
+  (>>=) getLine (\x ->
+  (>>=) putStrLn (\_ ->
+      return ()
+)
+  )
+#+END_SRC
+
+* A higher level abstraction than most languages offer
+
+Perhaps even removing the operator entirely might be more intuitive
+coming from other languages.
+
+#+BEGIN_SRC haskell
+main = bind getLine (\x -> 
+     bind putStrLn (\_ -> 
+       return ()
+)
+  )
+  where bind x y = x >>= y
+#+END_SRC
+
+* Ad-hoc polymorphism
+
+The kind of polymorphism offered by Haskell typeclasses is called /ad hoc
+polymorphism/.
+
+This is not to be confused with /parametric polymorphism/, which is the type we
+have when we see a polymorphic function like
+
+#+BEGIN_SRC haskell
+length :: [a] -> Int
+#+END_SRC
+
+* Ad-hoc polymorphism
+
+Typeclass polymorphism is "ad hoc" because a type is only an instance of
+a typeclass if we "say so" by providing an instance declaration.
+
+It allows us to write functions that work for any monad, any instance of
+=Show=, and so on.
+
+=(>>=)= works very differently depending on the context it is called,
+but Haskell hides much of that context using type inference.
+
+* The =Reader= monad
+
+The =Reader= monad lets us access shared state within a monadic
+context.
+
+In effect, it does half the job of the =State= monad.
+
+#+BEGIN_SRC haskell
+ask :: Reader r r
+asks :: (r -> a) -> Reader r a
+local :: (r -> r) -> Reader r a -> Reader r a
+runReader :: Reader r a -> r -> a
+#+END_SRC
+
+* The =Reader= monad
+
+#+BEGIN_SRC haskell
+import Control.Monad.Reader
+
+data MyContext = MyContext
+  { foo :: String
+  , bar :: Int
+  } deriving (Show)
+
+computation :: Reader MyContext (Maybe String)
+computation = do
+  n <- asks bar
+  x <- asks foo
+  if n > 0
+  then return (Just x)
+  else return Nothing
+#+END_SRC
+
+* The =Reader= monad
+
+#+BEGIN_SRC haskell 
+ex1 :: Maybe String
+ex1 = runReader computation $ MyContext "hello" 1
+
+ex2 :: Maybe String
+ex2 = runReader computation $ MyContext "haskell" 0
+
+> ex1
+Just "hello"
+it :: Maybe String
+> ex2
+Nothing
+#+END_SRC
+
+* The =Writer= monad
+
+The =Writer= monad lets us emit a lazy stream of values from within a
+monadic context.  This is the other half of what =State= does.
+
+#+BEGIN_SRC haskell 
+tell :: w -> Writer w ()
+execWriter :: Writer w a -> w
+runWriter :: Writer w a -> (a, w)
+#+END_SRC
+
+* The =Writer= monad
+
+#+BEGIN_SRC haskell 
+import Control.Monad.Writer
+
+type MyWriter = Writer [Int] String
+
+example :: MyWriter
+example  = do
+  tell [1..3]
+  tell [3..5]
+  return "foo"
+
+output :: (String, [Int])
+output = runWriter example
+
+> output
+("foo",[1,2,3,3,4,5])
+#+END_SRC
+
+* Monad Transformers
+
+Modern Haskell monad libraries are typically written in a more general
+form than these examples, written in terms of which allow us to compose
+monads together to form composite monads.
+
+For instance, we may want to access state /and/ do some logging, so we
+want to use two monads, =State= and =Logger=.
+
+The simple case in which we only want to use one monad is achieved by
+composing that monad with the =Identity= monad.
+
+* Monad transformers
+
+There are versions of the "basic" monads we've seen so far which are
+capable of being composed with each other.
+
+| *Monad*    | *Transformer*   | *Type*         | *Transformed Type*   |
+|------------+-----------------+----------------+----------------------|
+| =Maybe=    | =MaybeT=        | =Maybe a=      | =m (Maybe a)=        |
+| =Reader=   | =ReaderT=       | =r -> a=       | =r -> m a=           |
+| =Writer=   | =WriterT=       | =(a,w)=        | =m (a,w)=            |
+| =State=    | =StateT=        | =s -> (a,s)=   | =s -> m (a,s)=       |
+
+* Monad transformers
+
+Implementing the basic monads as transformers composed with =Identity=,
+the monad that just returns whatever is given to it:
+
+#+BEGIN_SRC haskell
+type State  s = StateT  s Identity
+type Writer w = WriterT w Identity
+type Reader r = ReaderT r Identity
+#+END_SRC
+
+* Monad transformers
+
+At their core monad transformers allow us to with an interface to
+exchange values between the levels, called ==.
+
+#+BEGIN_SRC haskell
+lift   :: (Monad m, MonadTrans t) => m a -> t m a
+liftIO :: MonadIO m => IO a -> m a
+
+class MonadTrans t where
+    lift :: Monad m => m a -> t m a
+
+class (Monad m) => MonadIO m where
+    liftIO :: IO a -> m a
+
+instance MonadIO IO where
+    liftIO = id
+#+END_SRC
+
+* Monad transformers
+
+Just as the base monad class has laws, monad transformers also have a
+couple of laws:
+
+1. =lift . return \equiv return=
+
+2. ~lift (m >>= f) \equiv lift m >>= (lift . f)~
+
+* Using transformers
+
+We use the Transformer-variants for each of the monads in the outer
+layers and .
+
+Monads have kind =(* -> *)=, so monad transformers which take monads to
+monads have =((* -> *) -> * -> *)=:
+
+#+BEGIN_SRC haskell
+Monad (m :: * -> *)
+MonadTrans (t :: (* -> *) -> * -> *)
+#+END_SRC
+
+* Using transformers
+
+So, for example, if we wanted to form a composite computation using both
+the and monads we can now put the =Maybe= inside of a =ReaderT= to form
+.
+
+#+BEGIN_SRC haskell
+import Control.Monad.Reader
+
+type Env = [(String, Int)]
+type Eval a = ReaderT Env Maybe a
+
+data Expr
+  = Val Int
+  | Add Expr Expr
+  | Var String
+  deriving (Show)
+#+END_SRC
+
+* Using transformers
+
+#+BEGIN_SRC haskell
+eval :: Expr -> Eval Int
+eval ex = case ex of
+  Val n -> return n
+  Add x y -> do
+    a <- eval x
+    b <- eval y
+    return (a+b)
+  Var x -> do
+    env <- ask
+    val <- lift (lookup x env)
+    return val
+
+env :: Env
+env = [("x", 2), ("y", 5)]
+#+END_SRC
+
+* Using transformers
+
+#+BEGIN_SRC haskell
+ex1 :: Eval Int
+ex1 = eval (Add (Val 2) (Add (Val 1) (Var "x")))
+
+example1, example2 :: Maybe Int
+example1 = runReaderT ex1 env
+example2 = runReaderT ex1 []
+
+> example1
+Just 5 
+> example2
+Nothing
+#+END_SRC
+
+* Parsing
+
+** It's Nicer with Haskell!
+
+* Parsing
+
+is the process of reading a stream of data and transforming it into some
+different data type.
+
+The source of the data might be a , while the target could be an made of
+abstract data types defined by us.
+
+Many programming problems require the parsing of some source.
+
+E.g. we may need to make sense of an XML or JSON response from a web
+service, or parse a stream of binary data which represents an image
+file.
+
+* Parsing PGM files
+
+Recall the case study from last term.
+
+We needed to parse the contents of image files in the format.
+
+Studying the format of PGM files, we wrote our own parser by hand.
+
+* PGM format
+
+PGM files is a greyscale format:
+
+[[./images/baboon.png]]
+
+* PGM format
+
+The format specifies that a PGM file consists of a containing metadata,
+followed by the of the file, which is the image data.
+
+The first thing in the header must be a indicating that this is a PGM
+file.
+
+#+BEGIN_SRC haskell
+P5
+# CREATOR: GIMP PNM Filter Version 1.1
+600 600
+255
+\377\377\377\377...
+#+END_SRC
+
+* PGM format
+
+The next line in this example is a comment. Following that is a line
+containing the /width/ and /height/ of the file in pixels.
+
+#+BEGIN_SRC haskell
+P5
+# CREATOR: GIMP PNM Filter Version 1.1
+600 600
+255
+\377\377\377\377...
+#+END_SRC
+
+* PGM format
+
+The last line of the header is an 8 bit number which is the /maximum
+greyscale/ value in the data. In this example the darkest colour is
+black.
+
+That is the end of the header. The next line is a list of bytes, each of
+which is the greyscale value of a single pixel.
+
+#+BEGIN_SRC haskell
+P5
+# CREATOR: GIMP PNM Filter Version 1.1
+600 600
+255
+\377\377\377\377...
+#+END_SRC
+
+* Parsing PGMs
+
+After reading the contents of a file as a =ByteString=, we needed to read
+the magic number from the first two bits, read some whitespace and throw
+it away, read in the width, and so on, eventually putting all the values
+into an ADT:
+
+#+BEGIN_SRC haskell
+data PGM = PGM 
+    { width   :: Int
+    , height  :: Int
+    , maxGrey :: Int
+    , pgmData :: B.ByteString
+}
+#+END_SRC
+
+* Parsing PGMs
+
+Every function that parses some information from the input needs to
+return the /thing that it parsed/ and the /remaining data/, so that we
+can carry on parsing:
+
+#+BEGIN_SRC haskell
+parseMagicNumber :: B.ByteString -> (B.ByteString, B.ByteString)
+-- and parseWidth, etc
+#+END_SRC
+
+But any of these functions could fail, so we will return a =Maybe=:
+
+#+BEGIN_SRC haskell
+parseMagicNumber :: B.ByteString -> Maybe (B.ByteString, B.ByteString)
+-- ...
+parse :: B.ByteString -> Maybe PGM
+#+END_SRC
+
+* Putting it together
+
+Putting all these functions that return =Maybe=s might look like this:
+
+#+BEGIN_SRC haskell
+parse :: B.ByteString -> Maybe PGM
+parse bs = case parseMagicNumber bs of
+  Nothing -> Nothing
+  Just (s, s') -> 
+    case parseWS s' of
+      Nothing -> Nothing
+      Just (_, s') -> 
+        case parseWidth s' of
+          ...
+#+END_SRC
+
+* =Maybe= is a monad
+
+But =Maybe= is a monad! We can use =do=-notation or, even better,
+monadic style:
+
+#+BEGIN_SRC haskell
+parse :: B.ByteString -> Maybe PGM
+parse bs = parseMagicNumber bs       >>= 
+           \(s, s') -> parseWS s'    >>=
+           \(s, s') -> parseWidth s' >>=
+           ...
+#+END_SRC
+
+* Parser combinator libraries
+
+Writing a one-off parser for a format as simple as PGM is OK.
+
+However, we wouldn't want to write a parser for a more complex language
+(e.g. Java) that way.
+
+Haskell is a great tool for writing parsers and there are some very
+efficient and powerful .
+
+* Parser combinator libraries
+
+A /parser combinator/ is a higher order function that takes two smaller
+parsers and combines them to produce a larger one.
+
+For example, say we have a parser called =digit= that reads any
+numeric char, and one called =letter= that reads an alphabetic char.
+
+Then we can combine them using combinators to make new parser that
+reads a digit then a letter.
+
+Imagining a couple of combinators, =many digit= could be a parser that
+would match one or more digits. =(digit <|> letter)= could be a parser
+that reads /either/ a digit or a letter.
+
+* Parsing
+
+The little =parse= functions we wrote for PGMs all took an input stream
+of characters and yielded a pair of the parsed value and the unconsumed
+part of the stream.
+
+Simplifying things, they had the same sort of form as this parser that
+just reads a single char:
+
+#+BEGIN_SRC haskell
+parseHead :: String -> (Char, String)
+parseHead (x:xs) = (x, xs)
+#+END_SRC
+
+* Parsing
+
+Even this simple parser might fail, so we used =Maybe=:
+
+#+BEGIN_SRC haskell
+parseHead :: String -> Maybe (Char, String)
+parseHead []     = Nothing
+parseHead (x:xs) = Just (x, xs)
+#+END_SRC
+
+* Parsing
+
+By making a /monad/ we can hide the error recovery side of things and
+define a parser that builds up a composite data structure for the AST.
+
+#+BEGIN_SRC haskell
+
+newtype Parser a = 
+    Parser { parse :: String -> [(a,String)] }
+
+parseHead :: Parser Char
+parseHead = Parser $ \s ->
+  case s of
+   []     -> []
+   (c:cs) -> [(c,cs)]
+#+END_SRC
+
+* Parsing
+
+Running the function will result in traversing the stream of characters
+yielding a value of type =a= that represents the AST for the parsed
+expression, or failing with a parse error for malformed input, or
+failing by not consuming the entire stream of input.
+
+#+BEGIN_SRC haskell
+runParser :: Parser a -> String -> a
+runParser m s =
+  case parse m s of
+    [(res, [])] -> res
+    [(_, rs)]   -> error "Parser did not consume entire stream."
+    _           -> error "Parser error."
+
+> runParser parseHead "Bananas"
+'B'
+#+END_SRC
+
+* Parsing
+
+Note that a more robust parser would record the position at which the
+failure occurred, and use a more efficient type for the stream, such as
+=Text=.
+
+#+BEGIN_SRC haskell
+runParser :: Parser a -> String -> a
+runParser m s =
+  case parse m s of
+    [(res, [])] -> res
+    [(_, rs)]   -> error "Parser did not consume entire stream."
+    _           -> error "Parser error."
+
+> runParser parseHead "Bananas"
+'B'
+#+END_SRC
+
+* Monadic parsers
+
+To use the combinator style we need to be able to parsers to make new
+ones.
+
+We want to be able to =bind= a parser onto a function that takes the
+output of the first parser and does something with it.
+
+#+BEGIN_SRC haskell
+bind :: Parser a -> (a -> Parser b) -> Parser b
+bind p f = Parser $ \s -> concatMap 
+                    (\(a, s') -> parse (f a) s') $ parse p s
+#+END_SRC
+
+* Monadic parsers
+
+To complete the monad definition we also need a way to inject a value
+into the monad.
+
+#+BEGIN_SRC haskell
+unit :: a -> Parser a
+unit a = Parser (\s -> [(a,s)])
+
+instance Monad Parser where
+  (>>=)  = bind
+  return = unit
+#+END_SRC
+
+* Monadic parsers
+
+#+BEGIN_SRC haskell
+digit :: Parser Char
+digit = Parser $ \s ->
+  case s of
+    []     -> []
+    (c:cs) -> if isDigit c then [(c, cs)]
+               else []
+
+*Main> runParser digit "1"
+'1'
+*Main> runParser digit "x"
+* Exception: Parser error.
+CallStack (from HasCallStack):
+  error, called at NanoP.hs:23:20 in main:Main
+#+END_SRC
+
+* Monadic parsers
+
+=letter= is very similar to =digit=...how can we use higher order-ness
+to make something more general?
+
+#+BEGIN_SRC haskell
+letter :: Parser Char
+letter = Parser $ \s ->
+  case s of
+    []     -> []
+    (c:cs) -> if isLetter c then [(c, cs)]
+              else []
+#+END_SRC
+
+* Monadic parsers
+
+We can separate the code that selects the value we want to test and the
+test itself:
+
+#+BEGIN_SRC haskell
+item :: Parser Char
+item = Parser $ \s ->
+  case s of
+   []     -> []
+   (c:cs) -> [(c,cs)]
+
+satisfy :: (Char -> Bool) -> Parser Char
+satisfy p = item >>= \c ->
+  if p c
+  then unit c
+  else (Parser (\cs -> []))
+
+digit  = satisfy isDigit
+letter = satisfy isLetter
+#+END_SRC
+
+* Monadic parsers
+
+This "or" combinator takes two parsers, runs the first one then runs
+the second if the first one failed.
+
+#+BEGIN_SRC haskell
+(<|>) :: Parser a -> Parser a -> Parser a
+(<|>) p1 p2 = Parser $ \s ->
+  case parse p1 s of
+    []  -> parse p2 s
+    res -> res
+
+runParser (letter <|> digit) "4"
+'4'
+#+END_SRC
+
+* Parsing log files
+
+Having got an idea how these things work, we will use =attoparsec=,
+one of Haskell's parser combinator libraries, for a real-world
+example.
+
+Log files are ubiquitous in software, being produced by all sorts of
+applications to record their use, error conditions and so on.
+
+Some formats are standard, others homegrown. 
+
+You may have written a simple parser by hand for a homegrown log
+format in the labs a while ago.
+
+* Parsing log files
+
+There are several standard formats for . In any format, an entry
+includes the of the client.
+
+An IP address is a numerical label applied to any device connected to
+the internet.
+
+In the standard, the address is a 32bit number.
+
+The human-readable form splits the number into four bytes, e.g.
+=172.16.254.1=.
+
+* Parsing log files
+
+So an IP address such as =172.16.254.1= is made up of four 8bit integers
+separated by full stops.
+
+We want to be able to parse a string such as =“172.16.254.1”= into a
+Haskell ADT:
+
+#+BEGIN_SRC haskell
+import Data.Word
+
+data IP = IP Word8 Word8 Word8 Word8 deriving Show
+#+END_SRC
+
+* Parsing log files
+
+AttoParsec provides the =decimal= parser, which succeeds with any
+unsigned integral number. =char= parses one =Char= that matches its
+argument.
+
+#+BEGIN_SRC haskell
+{-# LANGUAGE OverloadedStrings #-}
+import Data.Attoparsec.Char8
+import Data.Word
+
+parseIP :: Parser IP
+parseIP = do
+  d1 <- decimal
+  char '.'
+  d2 <- decimal
+  char '.'
+  d3 <- decimal
+  char '.'
+  d4 <- decimal
+  return $ IP d1 d2 d3 d4
+#+END_SRC
+
+* Parsing log files
+
+AttoParsec works with =ByteString= rather than =String=, so we are using
+the =OverloadedStrings= extension.
+
+#+BEGIN_SRC haskell
+{-# LANGUAGE OverloadedStrings #-}
+import Data.Attoparsec.Char8
+import Data.Word
+
+parseIP :: Parser IP
+parseIP = do
+  d1 <- decimal
+  char '.'
+  d2 <- decimal
+  char '.'
+  d3 <- decimal
+  char '.'
+  d4 <- decimal
+  return $ IP d1 d2 d3 d4
+#+END_SRC
+
+* Parsing log files
+
+=parseOnly= returns an =Either= which is either =(Left error)= or
+=(Right result)=.
+
+#+BEGIN_SRC haskell
+-- in the Prelude
+data Either a b = Left a | Right b
+
+main :: IO ()
+main = print $ parseOnly parseIP "131.45.68.123"
+
+> main
+Right (IP 131 45 68 123)
+#+END_SRC
+
+* Apache log file formats
+
+In the Apache web server, the format of logs can be customised by the
+user but this is the "common" format:
+
+#+BEGIN_SRC haskell
+LogFormat "%h %l %u %t \"%r\" %>s %b"
+#+END_SRC
+
+- =%h= -- The IP address of the client.
+
+- =%l= -- The identity of the client determined by =identd= on the
+  client's machine. Will return a hyphen (-) if this information is not
+  available.
+
+- =%u= -- The userid of the client if the request was authenticated.
+
+- =%t= -- The time that the request was received.
+
+- ="%r"= -- The request line that includes the HTTP method used, the
+  requested resource path, and the HTTP protocol that the client used.
+
+- =%>s= -- The status code that the server sends back to the client.
+
+- =%b= -- The size of the object requested.
+
+* A simpler log format
+
+So that things will fit on the slides, we will work with a (overly)
+simplified log format:
+
+#+BEGIN_SRC haskell
+LogFormat "%h %u %t \"%r\""
+#+END_SRC
+
+Two entries in =access.log=.
+
+#+BEGIN_SRC haskell
+127.0.0.1 peter [09/02/2018:10:34:12] "GET /sample-image.png HTTP/2"
+
+10.185.248.71 - [09/02/2018:19:12:06] "GET /inventory/item?userId=1 HTTP/1.1"
+#+END_SRC
+
+* A simpler log format
+
+A BNF grammar for this language, assuming some convenient terminals:
+
+#+BEGIN_EXAMPLE  
+logentry := host <space> userid <space> time <space> request
+host     := <number> <dot> <number> <dot> <number> <dot> <number>
+userid   := '-' | <word>
+time     := '[' year <colon> tod <space> offset ']'
+offset   := '+' <digit><digit><digit><digit>
+date     := <digit><digit> '/' <digit><digit> '/' year
+year     := <digit><digit><digit><digit>
+tod      := <digit><digit> <colon> <digit><digit> <colon> <digit><digit>
+request  := '"' reqBody '"'
+reqBody  := <char> | <char> reqBody | <space> reqBody
+#+END_EXAMPLE
+
+* Apache Log Files
+
+The ADT that we will construct from each line in a log file:
+
+#+BEGIN_SRC haskell
+data LogEntry =
+LogEntry { entryIP       :: IP
+         , entryUser     :: EntryUser 
+         , entryTime     :: LocalTime
+         , entryRequest  :: Request
+           } deriving Show
+#+END_SRC
+
+* Parsing alternatives
+
+We know how to parse IP addresses. The next two items are a string
+identifying a user or a hyphen.
+
+#+BEGIN_SRC haskell
+data EntryUser = User Text | NoUser
+
+parseUser :: Parser EntryUser
+parseUser = (char '-' >> return NoUser)
+     <|> (takeWhile (not . isSpace) >>= \u -> User u)
+#+END_SRC
+
+* Apache Log Files
+
+Our time parser:
+
+#+BEGIN_SRC haskell
+parseTime :: Parser LocalTime
+parseTime = do
+  char '['
+  d  <- count 2 digit
+  char '/'
+  mm <- count 2 digit
+  char '/'
+  y  <- count 4 digit
+  char ':'
+  h  <- count 2 digit
+  char ':'
+  m  <- count 2 digit
+  char ':'
+  s  <- count 2 digit
+  char ']'
+  return $
+    LocalTime { localDay = fromGregorian (read y) (read mm) (read d)
+              , localTimeOfDay = TimeOfDay (read h) (read m) (read s)
+                }
+#+END_SRC
+
+* Parsing the Request
+
+Parsing the request means consuming all the text between two quotation
+marks. This is simple enough to write without a do-block:
+
+#+BEGIN_SRC haskell
+type Request = Text
+
+parseRequest :: Parse Request
+parseRequest = char "\"" >> many $ noneOf "\""
+                         >>= return
+#+END_SRC
+
+=noneOf= takes a =String= and constructs a parser that keeps going until
+it encounters a =Char= which is in the argument. The =many= combinator
+runs a parser zero or many times.
+
+* Apache Log Files
+
+Now we can compose the parsers for log entry parts into a bigger one
+that parses an entire entry:
+
+#+BEGIN_SRC haskell
+parseLogEntry :: Parser LogEntry
+parseLogEntry = do
+  i  <- parseIP
+  char ' '
+  u   <- parseUser
+  char ' '
+  t   <- parseTime
+  char ' '
+  r <- parseRequest
+  return $ LogEntry i u t r
+#+END_SRC
+
+* Apache Log Files
+
+Parsing an entry:
+
+#+BEGIN_EXAMPLE 
+entry = "127.0.0.1 - [9/Feb/2018:10:34:12 -0700] \"GET /sample-image.png HTTP/2\"" 
+
+> parseOnly parseLogEntry entry
+LogEntry (IP 127 0 0 1) NoUser (LocalTime 2018-02-09 10:34:12) "GET /sample-image.png HTTP/2" 
+#+END_EXAMPLE
+
+* Apache Log Files
+
+To read the whole log file we need to map =parseLogEntry= onto every
+line.
+
+The =(<*)= combinator takes two parsers, runs the first, runs the second
+then throws away the result, and finally returns the result of the first
+parser.
+
+#+BEGIN_SRC haskell 
+type Log = [LogEntry]
+
+logParser :: Parser Log
+logParser = many $ logEntryParser <* endOfLine
+#+END_SRC
+
+* Next week
+
+Make some improvements to the log file parser in the lab.
+
+Next week: *more parsing!*
+
+We will look at parsing more complex languages such as a programming
+language.

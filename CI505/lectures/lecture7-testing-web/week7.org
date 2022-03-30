@@ -1,0 +1,811 @@
+* Testing functional code
+#+BEGIN_center  
+#+ATTR_ORG: :width 800 
+[[./images/monkey-typewriter.jpg]]
+#+END_center
+
+* Testing and quality assurance
+
+In order to be effective, testing needs to be /systematic/,
+/automated/, and have a large coverage of the code.
+
+Knowing /what to test and how/ can be difficult and takes experience. 
+
+But a comprehensive test suite makes maintenance and adding new
+features much easier.
+
+* Testing and quality assurance
+
+Writing the tests helps you to understand your own code more
+thoroughly.
+
+*Each and every medium or larger project depends on the existence of
+such tests*.
+
+Even the smallest project can get great benefits from them.
+
+* Types of testing
+
+- Unit testing
+
+- Integration testing
+
+- Randomised testing
+
+* Unit testing
+
+A unit test is a piece of code written by a developer that executes a
+specific functionality in the code to be tested and *asserts* a
+certain behaviour or state.
+
+The percentage of code which is tested by unit tests is called
+*coverage*.
+
+* Unit testing
+
+A unit test targets a /small/ unit of code, e.g., a function or a
+datatype.
+
+External dependencies should be removed from unit tests, e.g., by
+replacing the dependency with a test implementation or a "mock" object
+created by a test framework.
+
+* Unit testing
+
+Unit tests are not suitable for testing complex user interface or
+component interaction.
+
+For this, you should develop /integration tests/.
+
+* Unit testing
+
+Unit testing is central to agile development techniques. Some of the
+advantages:
+
+- Find problems early,
+
+- Regression testing,
+
+- Provides "living documentation".
+
+* Unit testing
+
+Challenges:
+
+- Can't test every possible path through the code,
+
+- Not a replacement for integration testing,
+
+- Profusion of tests in a large system,
+
+- Difficult to create realistic and meaningful tests,
+
+- Difficult to apply to interactive applications or ones with external
+  parts (e.g. that connect to a webservice, database, etc). *Mock
+  objects* are used in these cases.
+
+* Integration testing
+
+An /integration test/ aims to /test the behaviour of a component/ or
+the integration between a set of components.
+
+Integration tests check that /the whole system works as intended/,
+therefore they are reducing the need for intensive manual tests.
+
+These kinds of tests allow you to translate your user stories into a
+test suite.
+
+Each test resembles an expected user interaction with the application.
+
+* What to test?
+
+What should be tested can be a controversial topic.
+
+Some developers believe every statement in your code should be tested.
+
+In any case you should write software tests for the critical and
+complex parts of your application.
+
+If you introduce new features a solid test suite also protects you
+against regression in existing code.
+
+* What to test?
+
+You may be tempted to ignore "trivial" or simple code *but* you never
+know when functionality may be affected by unexpected changes (e.g.
+unanticipated input).
+
+Generally though, you do want to identify and focus on the *critical*
+parts of your application.
+
+If you start developing tests for an existing code base without any
+tests, it is good practice to start writing tests for code in which
+most of the errors happened in the past.
+
+* HUnit
+
+The *HUnit* library provides unit testing in a similar way to *JUnit*.
+
+A test is defined as a package of test cases.
+
+A test is either a single test case, a group of tests, or either of
+the first two identified by a label.
+
+#+BEGIN_SRC haskell 
+data Test = TestCase Assertion
+          | TestList [Test]
+          | TestLabel String Test
+#+END_SRC 
+
+* HUnit
+
+A test case is the unit of test execution. 
+
+Distinct test cases are executed independently.
+
+The failure of one is independent of the failure of any other.
+
+You can make a test case from an assertion by applying the =TestCase=
+constructor.
+
+For example, =TestCase (pure ())= is a test case that never fails.
+
+=TestCase assertEqual "for x," 3 x= is a test case that checks that
+the value of =x= is 3.
+
+* HUnit
+
+#+BEGIN_SRC haskell 
+import Test.HUnit
+
+test1 = TestCase (assertEqual "for (foo 3)," (1,2) (foo 3)) 
+
+test2 = TestCase $ do 
+  (x,y) <- partA 3 
+  assertEqual "for the first result of partA," 5 x 
+  b <- partB y 
+  assertBool ("(partB " ++ show y ++ ") failed") b 
+#+END_SRC
+
+* HUnit
+
+Name the test cases and group them together:
+
+#+BEGIN_SRC haskell
+tests = TestList [ TestLabel "test1" test1
+                 , TestLabel "test2" test2
+                 ] 
+#+END_SRC
+
+Run the tests as a group with the function =runTestTT= to the
+collected tests.
+
+#+BEGIN_SRC haskell
+> runTestTT tests 
+### Failure in: 0:test1 for (foo 3), expected:
+(1,2) but got: (1,3) 
+Cases: 2 Tried: 2 Errors: 0 Failures: 1
+#+END_SRC
+
+* HUnit
+
+The basic building block of a test is an assertion. 
+
+An assertion is an IO computation that always produces a void result.
+
+#+BEGIN_SRC haskell
+type Assertion = IO () 
+#+END_SRC
+
+* HUnit
+
+Why is an assertion an IO computation? 
+
+So that programs with *real-world side effects* can be tested.
+
+How does an assertion assert anything if it produces no useful result?
+
+The answer is that an assertion can signal failure by calling
+=assertFailure=.
+
+#+BEGIN_SRC haskell
+assertFailure :: String -> Assertion 
+assertFailure msg = ioError (userError ("HUnit:" ++ msg)) 
+#+END_SRC
+
+* HUnit
+
+=assertFailure= can be used directly, but it is more common to use it
+indirectly through other assertion functions that conditionally assert
+failure.
+
+#+BEGIN_SRC haskell
+assertBool :: String -> Bool -> Assertion 
+     
+assertString :: String -> Assertion 
+     
+assertEqual :: (Eq a, Show a) => String -> a -> a -> Assertion
+
+#+END_SRC
+
+* The =change= project
+
+*Demo* of the program and its unit tests.
+
+* QuickCheck
+
+QuickCheck provides a form of testing based on /properties/ of the
+code, especially its /types/.
+
+It is a particularly good fit for testing pure functions.
+
+It can overcome the potential arbitrariness of unit tests where you
+*only test only the cases you considered*.
+
+* QuickCheck
+
+In unit testing we would test the =qsort= function by passing in some
+hardcoded unsorted lists and making sure the output is sorted. 
+
+#+BEGIN_SRC haskell
+import Data.List
+
+qsort :: Ord a => [a] -> [a] 
+qsort [] = [] 
+qsort (x:xs) = qsort lhs ++ [x] ++ qsort rhs 
+  where lhs = filter (< x) xs 
+        rhs = filter (>= x) xs 
+#+END_SRC
+
+* QuickCheck
+
+That is fine for the hardcoded examples we thought of, but what
+*properties* do we want =qsort= to have?
+
+The most obvious one is that the output should be sorted:
+
+#+BEGIN_SRC haskell
+-- The output is sorted.  
+prop_ordered :: Ord a => [a] -> Bool
+prop_ordered xs = ordered (qsort xs) 
+  where ordered []  = True
+        ordered [_] = True 
+        ordered (x:y:ys) = x <= y && ordered (y:ys)
+
+
+> prop_ordered [1,3,0,99,-1] 
+True 
+> prop_ordered [] 
+True 
+#+END_SRC
+
+* QuickCheck
+
+QuickCheck *generates test data like this for you* and passes it to the
+property via the =quickCheck= function.
+
+The type of the property itself determines which data generator is
+used.  
+
+QuickCheck then checks that for all the test data produced, the
+property is satisfied.
+
+#+BEGIN_SRC haskell
+> :type quickCheck quickCheck :: (Testable a) => a -> IO () 
+> quickCheck prop_ordered 
++++ OK, passed 100 tests.  
+#+END_SRC
+
+* QuickCheck
+
+Our function should be /idempotent/ too. Running it once should be the
+same as running it more than once.
+
+#+BEGIN_SRC haskell
+-- quicksorting twice makes no difference.  
+prop_idempotent :: Ord a => [a] -> Bool 
+prop_idempotent xs = qsort (qsort xs) == qsort xs
+#+END_SRC
+
+* QuickCheck
+
+The first element in a sorted list should always be the smallest
+element of the input list.
+
+We can specify this using the =Prelude= function =minimum=, but our
+first attempt doesn't work:
+
+#+BEGIN_SRC haskell
+-- The head is the smallest element. Fails with empty lists.
+prop_minimum1 :: Ord a => [a] -> Bool 
+prop_minimum1 xs = head (qsort xs) == minimum xs
+
+> quickCheck prop_minimum1
+Failed! Exception: 'Prelude.head: empty list' (after 1 test): [] 
+#+END_SRC
+
+* QuickCheck
+
+There's nothing wrong with =qsort= in this case, it's just that we
+tried to take the =head= of an empty list in the test.
+
+We can specify more precise invariants, filtering out values we don't
+want to consider.
+
+For the empty list case, we really want to say: /if the list is
+non-empty/, then the first element of the sorted result is the
+minimum.
+
+* QuickCheck
+
+Putting conditions on the random data can be done using the =(==>)=
+implication function, which filters out invalid data before running
+the property:
+
+#+BEGIN_SRC haskell
+-- The head is the smallest element. Discards input that doesn't
+-- meet the constraint of being non-empty.  
+prop_minimum2 :: Ord a => [a] -> Property 
+prop_minimum2 xs = not (null xs) ==> head (qsort xs) == minimum xs
+
+> quickCheck prop_minimum2 
++++ OK, passed 100 tests; 13 discarded.
+#+END_SRC
+
+* QuickCheck
+
+Note that we had to change the type of the property from being a
+simple =Bool= result to the more general =Property= type. 
+
+Also, QuickCheck generates the input first then checks the invariants,
+so some input is discarded.
+
+* QuickCheck modifiers
+
+To avoid discarding a lot of input data we can use one of QuickCheck's
+/modifiers/. 
+
+These are builtin type constructors that create non-empty lists,
+sorted lists, positive integers and so on:
+
+#+BEGIN_SRC haskell 
+-- The head is the smallest element. Uses a Modifier to produce
+-- the right kind of input.  
+prop_minimum3 :: Ord a => NonEmptyList a -> Bool 
+prop_minimum3 (NonEmpty xs) = head (qsort xs) == minimum xs
+
+> quickCheck prop_minimum3 +++ OK, passed 100 tests.  
+#+END_SRC
+
+* QuickCheck
+
+We want the output to actually be sorted and to contain all the same
+elements as the input:
+
+#+BEGIN_SRC haskell 
+prop_ordered :: Ord a => [a] -> Bool 
+prop_ordered xs = ordered (qsort xs) 
+  where ordered []  = True 
+        ordered [_] = True 
+        ordered (x:y:ys) = x <= y && ordered (y:ys)
+
+prop_permutation :: Ord a => [a] -> Bool 
+prop_permutation xs = permutation xs (qsort xs) 
+  where permutation xs ys = null (xs \\ ys) && null (ys \\ xs) 
+#+END_SRC
+
+* QuickCheck
+
+Finally, it is always a good idea to compare our code to some reliable
+benchmark. 
+
+We know that the =sort= function from =Data.List= works correctly, so
+we‘ll compare our function to that.
+
+#+BEGIN_SRC haskell 
+-- qsort works in the same way as the sort function from Data.List.  
+prop_sort_model :: Ord a => [a] -> Bool
+prop_sort_model xs = sort xs == qsort xs 
+#+END_SRC
+
+* QuickCheck
+
+Now we can write a function that allows us to run all tests in one go.
+
+#+BEGIN_SRC haskell
+-- | Collect the tests into a suite.
+tests :: [Test]
+tests = [ testProperty "Check that the output is ordered." prop_ordered
+        , testProperty "Sorting twice makes no difference." prop_idempotent
+        , testProperty "The head is the smallest element." prop_minimum
+        , testProperty "Input and output contain the same elements." prop_permutation
+        , testProperty "Works in the same way as Data.List.sort." prop_sort_model
+        ]
+
+-- | The main function runs the tests.
+main :: IO ()
+main = defaultMain tests
+#+END_SRC
+
+See =QSort.hs= in =CI505/examples=.
+
+* Generating test data
+
+QuickCheck knows how to generate random numbers, strings and other
+basic types but if we want to generate arbitrary values of our own
+types (e.g.  =Board=, our type for Sudoku boards), we need to tell it
+how.
+
+The =Arbitrary= typeclass provides a suite for building /random data/.
+
+The class provides a function, =arbitrary=, to generate data of each
+type, and with this we can define our data generator for our custom
+data types.
+
+#+BEGIN_SRC haskell 
+class Arbitrary a where arbitrary :: Gen a 
+#+END_SRC
+
+* Test data
+
+This is a property we want to prove of a Sudoku solver -- that a
+function called =solve= really does solve the puzzle (or returns
+=Nothing=, since puzzles may be unsolvable).
+
+#+BEGIN_SRC haskell 
+data Puzzle = Puzzle [[Maybe Int]]
+
+prop_solve :: Puzzle -> Bool 
+prop_solve p
+        | solution == Nothing = True
+        | otherwise           = isSolutionOf (fromJust solution) p
+      where solution = solve p 
+#+END_SRC
+
+* Test data
+
+For this to work, =QuickCheck= has to know how to produce random
+puzzles.
+
+First, we make a /generator/ for =Maybe Int= values.
+
+The use of the =frequency= function means that 9 times out of 10 it
+will return =Nothing=, otherwise it will be =Just x=, where =x= is a
+random number between 1 and 9.
+
+#+BEGIN_SRC haskell 
+cell :: Gen (Maybe Int) cell = 
+     frequency [ (9, return Nothing) 
+               , (1, do n <- choose(1,9) ; return (Just n))
+               ] 
+#+END_SRC
+
+* Test data
+
+Next we make =Puzzle= an instance of =Arbitrary=.
+
+The =sequence= function turns a list of monadic values (e.g.  =[Gen
+(Maybe Int)]=) into a monadic list of values (e.g.  =Gen [Maybe
+Int]=).
+
+#+BEGIN_SRC haskell 
+instance Arbitrary Puzzle where 
+  arbitrary = do rows <- sequence [
+      sequence [ cell | j <- [1..9] ] | i <- [1..9] ] 
+      pure (Puzzle rows) 
+#+END_SRC
+
+* Code coverage
+
+/HPC/ (Haskell Program Coverage) is an extension to the compiler to
+observe what parts of the code were actually executed during a given
+program run.
+
+This is useful in the context of testing, as it lets us observe
+precisely /which functions, branches and expressions were actually
+evaluated/.
+
+The result is precise knowledge about the percentage of code tested.
+
+HPC comes with a utility to generate useful graphs of program
+coverage, making it easy to zoom in on weak spots in the test suite.
+
+* Code coverage with cabal
+
+#+BEGIN_SRC haskell 
+$ cabal clean 
+$ cabal configure --enable-tests --enable-coverage 
+$ cabal test 
+...  
+Package coverage report written to <long path>.../hpc_index.html 
+#+END_SRC
+
+* Code coverage
+
+#+ATTR_ORG: :width 1000
+[[./images/hpc-round1.png]]
+
+* Code coverage
+
+#+ATTR_ORG: :width 1000 
+[[./images/coverage-screen.png]]
+
+* Haskell for the web
+
+#+ATTR_ORG: :width 500 
+[[./images/logo.jpeg]]
+
+* Haskell for the web
+
+Haskell isn't the first language that springs to mind when you think
+about web development, but it actually has good support.
+
+This includes templating libraries for generating HTML (e.g. /blaze/) and
+fully-featured application servers like /Yesod/.
+
+An app server will typically provide a lot of things for the developer
+"out of the box" (e.g. persistence, authentication) and be capable of
+serving different protocols on different ports.
+
+* Haskell for the web
+
+We are going to look at /HappStack/ (a Haskell application server) to
+produce some websites and web services.
+
+HappStack provides native persistence for Haskell data using
+=acid-state= (we could equally well use a traditional database).
+
+Presuming we don't want to serve static pages, HappStack lets us use
+HTML, CSS and Javascript /templating languages/.
+
+* Claims made for Haskell as a server-side web language
+
+- Chance to use type system to rule out many common errors: e.g.
+  type-safe URLs.
+
+- High performance.
+
+- Functional abstractions (e.g. =Applicative=) reduce boilerplate and
+  allow us to write succinct, elegant apps.
+
+* Haskell for the web
+
+#+ATTR_ORG: :width 650 
+[[./images/haskell-benchmark.png]]
+
+But first...  the web!
+
+* Models of server side web development
+
+The 2000s saw the rise of "scaffolding" web frameworks made popular by
+Ruby on Rails.
+
+Issue a couple of commands and a website is created for us. Define a
+few objects and the database side is done for us.
+
+* Models of server side web development
+
+This approach takes the hard work of interacting with the database,
+authentication, etc etc, away from us. Deviate from the defaults at
+your own cost.
+
+Often bundle the webserver (a lightweight one, much simpler than
+Apache) with the website into a monolith. Just about all use the
+/front controller/ pattern.
+
+* Three-tier
+
+After decades of practice (i.e. expensive mistakes), there is a
+dominant MVC-ish three-tier model for developing robust, extensible
+web applications:
+
+- Presentation layer
+
+- Business logic layer
+
+- Storage layer
+
+* Three-tier
+
+*Example*: LAMP
+
+- *Presentation layer*: HTML, images and CSS generated by server-side
+  language, served by Apache.
+
+- *Business logic layer*: Server-side (PHP/Python/Ruby/etc) functions.
+
+- *Storage layer*: MySql/MariaDB/PostgreSQL/etc
+
+* Storage layer
+
+- Relational
+  - MySql/MariaDB
+  - Postgres
+  - Local file dbs: Derby, SQLite
+
+- NoSql
+  - Mongo
+  - CouchDB
+
+- RDF/XML
+  - Jena TDB
+  - StarDog
+
+* Business logic
+
+- PHP
+  - Symfony
+
+- Java
+  - Spring
+  - Play
+
+- Haskell
+  - Yesod
+  - HappStack
+
+* Presentation layer
+
+- HTML, CSS
+- ReactJS
+- Ember
+- AngularJS
+
+* HTTP protocol
+
+=HTTP= is a *stateless* protocol.
+
+It does not remember the last time you visited a site.
+
+Allows =GET=, =POST=, =PUT= and =DELETE= amongst other operations.
+
+Described in documents called "RFCs" (Request for Comments): rfc7230
+HTTP 1.1 Message Syntax & Routing, rfc7231 HTTP 1.1 Semantics &
+Content.
+
+(You need to be able to read RFCs!)
+
+* Browser example
+
+What happens when you type =http://www.google.com= into a web browser?
+
+=www.google.com= is resolved to the IP address 216.58.208.164 (or
+similar).
+
+The browser connects to port 80 on 216.58.208.164. Port 80 is the
+"well-known" http port.
+
+Browser issues =GET= request for =/=.
+
+Server -- in this case -- returns a HTTP status code 302.
+
+* HTTP headers
+
+So what did the browser send to =http://www.google.com=?
+
+#+BEGIN_EXAMPLE
+GET / HTTP/1.1 
+Host: www.google.com 
+User-Agent: curl/7.51.0
+Accept: */* 
+#+END_EXAMPLE
+
+* GET
+
+A HTTP =GET= request asks for a specific resource.
+
+#+BEGIN_EXAMPLE 
+GET / HTTP/1.1 
+#+END_EXAMPLE
+
+In this case the resource is =/= over protocol =HTTP/1.1=.
+
+* Host
+
+=Host: www.google.com=
+
+"The '=Host=' header field in a request provides the host and port
+information from the target URI, enabling the origin server to
+distinguish among resources while servicing requests for multiple host
+names on a single IP address." 
+
+RFC7230
+
+* User-Agent
+
+The =User-Agent= header identifies the caller.
+
+=User-Agent: curl/7.51.0=
+
+"The 'User-Agent' header field contains information about the user
+agent originating the request, which is often used by servers to help
+identify the scope of reported interoperability problems, to work
+around or tailor responses to avoid particular user agent limitations,
+and for analytics regarding browser or operating system use. A user
+agent SHOULD send a User-Agent field in each request unless
+specifically configured not to do so." 
+
+RFC7231
+
+* Accept
+
+=Accept: */*=
+
+"The 'Accept' header field can be used by user agents to specify
+response media types that are acceptable. Accept header fields can be
+used to indicate that the request is specifically limited to a small
+set of desired types, as in the case of a request for an in-line
+image."
+
+* HTTP status codes
+
+- *1xx* Informational.
+- *2xx* Success.
+- *3xx* Redirection.
+- *4xx* Client Error.
+- *5xx* Server Error.
+
+* HTTP status codes
+
+In this case we got a *302*.
+
+"The 302 (Found) status code indicates that the target resource
+resides temporarily under a different URI. Since the redirection might
+be altered on occasion, the client ought to continue to use the
+effective request URI for future requests." RFC7231
+
+* Request/Response
+
+Every HTTP request generates are response, or a time out.
+
+Most web frameworks give you direct access to a representation of the
+HTTP Request that has been sent.
+
+Your job in the business logic, is to build an appropriate HTTP
+Response.
+
+* More HTTP
+
+We've seen the HTTP =GET= request. What are the important other
+request verbs?
+
+- =GET= -- see RFC7231 Section 4.3.1
+- =POST= -- see RFC7231 Section 4.3.3
+- =PUT= -- see RFC7231 Section 4.3.4
+- =DELETE= -- see RFC7231 Section 4.3.5
+
+* Request body
+
+The request body is separated from the headers using \n \r. Like the
+headers, it is delivered as a stream of bytes. It is interpreted
+according to the content-type and encoding in the headers.
+
+Example POST request with JSON body (we'll cover JSON later):
+
+#+BEGIN_EXAMPLE 
+POST / HTTP/1.1 
+Host: www.brighton.ac.uk 
+User-Agent: curl/7.51.0
+Accept: */* 
+Content-type: application/json 
+Content-Length: 18
+
+{ "example": 1 } 
+#+END_EXAMPLE
+
+* Response body
+
+The response also has a body. Often (not always) this is HTML content.
+
+The HTTP verbs are key to understanding what is going on in web
+requests.
+
+=Content-type= and =Accept= headers are important as they lead to
+issues in understanding routing.
+
+We will find the request/response abstraction is built into many web
+frameworks.
+
+* Next Time
+
+** HappStack: A Haskell web framework

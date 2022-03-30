@@ -1,0 +1,1155 @@
+* Input/Output in Haskell
+
+We have already talked quite a lot about /side effects/.
+
+Unlike a Java method, a Haskell function is /guaranteed to give the same
+result for the same input/.
+
+This makes our programs more robust and reliable.
+
+Haskell's purity relies on the fact that there are ...at least that's
+what we've been saying so far!
+
+* Side effects...actually rather a good thing
+
+Every useful program makes /some/ change to the outside world, whether
+this means sending some information over the network or storing user
+details in a database.
+
+Side effects include actions as simple as writing a file or printing
+something to a terminal.
+
+All of these things are possible in Haskell, which has an IO system
+which is powerful and easy to use.
+
+* Pure vs impure
+
+The functions we have been looking at so far are /pure/. 
+
+We can also write /impure/ code in Haskell.
+
+This impure parts of a program are strictly separated from the pure
+parts: we can call pure functions from the impure part of our programs,
+but not vice versa.
+
+* Pure vs impure
+
+So, the code that has nothing to do with IO still has the nice
+properties of regular Haskell code.
+
+The code that does IO doesn't have these guarantees, but we can clearly
+see where it begins and ends.
+
+* Hello, Haskell
+
+A Haskell program that does some IO. Not very interesting but a good
+place to start:
+
+#+BEGIN_SRC haskell
+main :: IO ()
+main = putStrLn "Hello World!"
+#+END_SRC
+
+=putStrLn= is an that prints its input to the terminal.
+
+The type of =main= tells us that it is impure, carries out an IO action
+and returns a value of =()= -- this type is called and has just one
+value, =()=.
+
+* Hello, Haskell
+
+=IO ()= is the type of IO actions that don't return any useful value
+(like =void= in Java).
+
+In general, IO actions can return (or contain) any type, e.g.
+=IO String= or =IO Bool=.
+
+#+BEGIN_SRC haskell
+main :: IO ()
+main = putStrLn "Hello World!"
+#+END_SRC
+
+* Hello, Haskell
+
+The type of =putStrLn= is =String -> IO ()=.
+
+We can think of =IO t= as a box containing a value of type =t=.
+
+Once a value is wrapped up in an action, we can't use it in our pure
+functions.
+
+* Hello, user
+
+We can chain together IO actions using . Every line in this =do= block
+is an IO action. The =do= block itself is an IO action, whose value is
+that of the last line in the block:
+
+#+BEGIN_SRC haskell
+main :: IO ()
+main = do putStrLn "Hi, what's your name?"
+   name <- getLine
+   putStrLn ("OK, nice to meet you " ++ name)
+#+END_SRC
+
+=getLine= gets a line of input from the user. Using =<-= that value to
+the identifier =name=.
+
+* Hello, user
+
+Calling pure functions from inside an IO action is easy:
+
+#+BEGIN_SRC haskell
+helloString :: String -> String
+helloString n = "OK, nice to meet you " ++ n
+
+main :: IO ()
+main = do putStrLn "Hi, what's your name?"
+   name <- getLine
+   putStrLn (helloString name)
+#+END_SRC
+
+=helloString= is a regular, pure Haskell function.
+
+* Performing an action
+
+IO actions can be created, stored and passed around inside our program
+without them. They can only be performed within another IO block.
+
+#+BEGIN_SRC haskell
+helloString :: String -> String
+helloString n = "OK, nice to meet you " ++ n
+
+sayHello :: String -> IO ()
+sayHello str = putStrLn str
+
+main :: IO ()
+main = do putStrLn "Hi, what's your name?"
+   name <- getLine
+   sayHello (helloString name)
+#+END_SRC
+
+* Calling pure code from within an IO action
+
+If we want to store the value from a pure function inside an IO action,
+use =let=. Unlike using =let= in a pure setting, we don't need to put =in=
+after the =let= statement:
+
+#+BEGIN_SRC haskell
+helloString :: String -> String
+helloString n = "OK, nice to meet you " ++ n
+
+sayHello :: String -> IO ()
+sayHello str = putStrLn str
+
+main :: IO ()
+main = do putStrLn "Hi, what's your name?"
+   name <- getLine
+   let str = helloString name
+   sayHello str
+#+END_SRC
+
+So, inside an IO action we use =<-= to get a value from an IO action,
+and =let= to get a value from pure code.
+
+* What does =return= do?
+
+In Haskell, =return= is a function not a keyword -- it wraps up its
+input in an IO action. In this program, we want to stop execution if the
+user enters an empty line:
+
+#+BEGIN_SRC haskell
+main :: IO ()
+main = do line <- getLine  
+   if null line  
+   then return ()  
+   else do putStrLn (reverseWords line)
+main  
+  
+reverseWords :: String -> String  
+reverseWords = unwords . map reverse . words
+#+END_SRC
+
+* What does =return= do?
+
+NB: =return= , and might not be the last expression to be evaluated in
+an IO action. So, it is nothing like =return= in Java, C, or any other
+language.
+
+#+BEGIN_SRC haskell
+main :: IO ()
+main = do line <- getLine  
+   if null line  
+   then return ()  
+   else do putStrLn (reverseWords line)
+main  
+  
+reverseWords :: String -> String  
+reverseWords = unwords . map reverse . words
+#+END_SRC
+
+(Also, note the indentation in the =else= block there...)
+
+* What does =return= do?
+
+To recap, =return= wraps up a value in an IO action and does not signal
+the end of an action. =<-= pulls a value out from an IO action by
+performing it:
+
+#+BEGIN_SRC haskell 
+main :: IO ()
+main = do let user1= "Alice" -- a pure value
+user2Act = return "Bob" -- an IO action
+   user2 <- user2Act -- pulling the value out of user2Act 
+   putStrLn (user1 ++ ", " ++ user2)
+#+END_SRC
+* Working with actions
+
+There are a number of typical use cases for working with actions that
+are wrapped up in useful functions in the module =Control.Monad=. =when=
+takes a predicate function and an IO action, and performs the action if
+the predicate is true:
+
+#+BEGIN_SRC haskell 
+import Control.Monad   
+  
+-- echo the input until we get to a space
+main :: IO ()
+main = do  
+c <- getChar  
+when (c /= ' ') (do  
+putChar c  
+main)
+#+END_SRC
+
+This and the next few examples are from [[http://learnyouahaskell.com]]
+
+* Working with actions
+
+=forever= takes an IO action and performs it forever:
+
+#+BEGIN_SRC haskell
+import Control.Monad  
+import Data.Char  
+
+main :: IO ()  
+main = forever (do  
+putStr "Give me some input: "  
+l <- getLine  
+putStrLn (map toUpper l))
+#+END_SRC
+
+* Working with actions
+
+=catch= takes two IO actions, tries to perform the first one, and
+performs the second one if the first causes an exception:
+
+#+BEGIN_SRC haskell
+import System.Environment  
+import System.IO  
+import System.IO.Error  
+  
+main :: IO ()
+main = toTry `catch` handler  
+  
+toTry :: IO ()  
+toTry = do (fileName:_) <- getArgs  
+   contents <- readFile fileName  
+   putStrLn ("The file has " ++ show (length (lines contents)) ++ " lines!")
+  
+handler :: IOError -> IO ()  
+handler e = putStrLn "Whoops, had some trouble!"
+#+END_SRC
+
+* Working with actions
+
+=sequence= takes a list of IO actions and returns an IO action that
+performs them one after the other:
+
+#+BEGIN_SRC haskell
+main = do  
+a <- getLine  
+b <- getLine  
+c <- getLine  
+print [a,b,c]  
+
+-- is the same as
+
+main = do  
+rs <- sequence [getLine, getLine, getLine]  
+print rs
+#+END_SRC
+
+* Working with actions
+
+=mapM= encapsulates the common problem of mapping an IO action over an
+input list then sequencing it, or performing all the actions.
+
+=mapM_= does the same, only it throws away the result later:
+
+#+BEGIN_SRC haskell
+> mapM print [1,2,3]  
+1  
+2  
+3  
+[(),(),()]  
+> mapM_ print [1,2,3]  
+1  
+2  
+3
+#+END_SRC
+
+* User input and command-line interfaces
+  :PROPERTIES:
+  :CUSTOM_ID: user-input-and-command-line-interfaces
+  :END:
+
+* Command-line IO
+
+As well as =putStrLn=, there are a series of functions that do IO with
+terminals:
+
+| =putStr=      | Print a string without appending a newline character.   |
+| =putChar=     | Print a single character.                               |
+| =print=       | Print the string representation of any instance of =Show=.   |
+| =getChar=     | Read a single character from stdin.                     |
+| =getContents=   | Read from stdin until reaching the EOF character.     |
+
+* Interacting with users
+
+Let's put some of these together in an example. This program will count
+the number of words in lines of input forever:
+
+#+BEGIN_SRC haskell
+import Control.Monad  
+
+main :: IO ()  
+main = forever (do  
+l <- getLine  
+putStrLn (length (words l)))
+#+END_SRC
+
+* Interacting with users
+
+We can compile this program to make a standalone executable that can be
+run outside of =ghci=:
+
+#+BEGIN_SRC haskell
+$ ghc --make wc.hs -o wc
+$ ./wc
+I've got a lovely bunch of coconuts
+7
+Here they are all standing in a line
+8
+wc: <stdin>: hGetLine: end of file
+#+END_SRC
+
+To end the program we need to type Ctrl-D (end of file). Alternatively,
+we can send text straight to =wc=:
+
+#+BEGIN_SRC haskell
+$ echo "Hi how are you\n Good thanks" | ./wc
+6
+#+END_SRC
+
+* Interacting lazily
+
+Rather than reading a line at a time, we can use =getContents= to
+rewrite =wc=:
+
+#+BEGIN_SRC haskell
+main :: IO ()
+main = do str <- getContents 
+  putStrLn (length (words str))
+#+END_SRC
+
+* Using =interact= to interact
+
+This idea of reading in a line from the user, doing something with it
+then printing something out is extremely common. There's a function for
+it, in fact, called =interact=:
+
+#+BEGIN_SRC haskell
+-- defined in Prelude
+interact :: (String -> String) -> IO ()
+
+main :: IO ()
+main = interact wordsInLine
+
+wordsInLine :: String -> String
+wordsInLine = show . length . words
+#+END_SRC
+
+* Command-line arguments
+
+If you're writing programs that users interact with via a CLI, you will
+probably need to allow the user to supply arguments on the
+command-line.
+
+The =getArgs= function returns the arguments that were supplied on the
+command line as a list of strings.
+
+To use it, import =System.Environment=.
+
+* Command line arguments
+
+A simple pattern for reading and reacting to arguments:
+
+#+BEGIN_SRC haskell
+import System.Environment
+
+dispatch :: [(String, [String] -> IO ())]  
+dispatch =  [ ("opt1", option1)  
+, ("opt2", option2)  
+]  
+
+main = do  
+(command:args) <- getArgs  
+let mAct = lookup command dispatch  
+case mAct of
+  (Just action) -> action args
+  Nothing -> putStrLn "Unknown argument"
+
+option1, option2 :: [String] -> IO ()
+option1 args = putStrLn (show args)
+option2 = option1
+#+END_SRC
+
+* Args done right
+
+However, if you want to write a robust CLI app that interacts nicely
+with other utilities, the arguments it accepts should come in a
+particular form, conforming to the POSIX standard. E.g. arguments with
+long names need to be prefixed ==.
+
+Functions and types that can do this for you are defined in
+=System.Console.GetOpt=.
+
+(It can be a bit painful to use, in my opinion, but comes with lots of
+documentation.)
+
+* Working with files
+  :PROPERTIES:
+  :CUSTOM_ID: working-with-files
+  :END:
+
+* Working with files
+
+Haskell has an API for working with files that include all the functions
+you'd expect to find for opening, reading from and writing to files.
+
+The API includes high-level functions, e.g. for reading the entire
+contents of a file into a =String=, and lower-level functions that allow
+you to manipulate data byte by byte.
+
+All of the functions for working with the terminal, like =purStrLn=,
+have a corresponding function for working with files, e.g. =hPutStrLn=.
+
+* Working with files
+
+The file-based versions of the IO functions all take a as an additional
+argument.
+
+A =Handle= is a reference to a file that also tracks the position within
+a file from which we are reading or writing.
+
+=openFile= takes a (a type synonym for =String=) and an .
+
+#+BEGIN_SRC haskell
+openFile :: FilePath -> IOMode -> IO Handle
+#+END_SRC
+
+* Opening a file
+
+The =IOMode= has one of the following values:
+
+- =ReadMode= (File must exist already),
+
+- =WriteMode= (File is overwritten if it exists),
+
+- =ReadWriteMode= (File is created if it doesn't exist, otherwise data
+  is preserved), or
+
+- =AppendMode= (File is created if it doesn't exist, otherwise data is
+  preserved).
+
+* Opening a file
+
+Because =openFile= returns an IO action, it has to be performed inside
+an IO action:
+
+#+BEGIN_SRC haskell
+import System.IO
+
+-- transfer contents of one file to another
+
+main = do inp <- openFile "input.txt" ReadMode
+   out <- openFile "out.txt" WriteMode
+   str <- hGetContents inp
+   hPutStr out str
+   hClose inp
+   hClose out
+#+END_SRC
+
+* File API
+
+Haskell's functions for working with files are defined in =System.IO=. A
+useful function is =withFile=, which opens a file, allows you to do
+something with it, then closes the file :
+
+#+BEGIN_SRC haskell
+withFile :: FilePath -> IOMode -> (Handle -> IO r) -> IO r
+#+END_SRC
+
+#+BEGIN_SRC haskell
+import System.IO 
+
+main :: IO ()
+main = do 
+withFile "input.txt" ReadMode (\handle -> do  
+contents <- hGetContents handle 
+putStr contents)
+#+END_SRC
+
+* The File API
+
+There are handy functions that allow us to carry out common tasks with a
+file without needing to worry about handles and remembering to close
+them:
+
+#+BEGIN_SRC haskell
+readFile :: FilePath -> IO String
+writeFile :: FilePath -> String -> IO ()
+appendFile :: FilePath -> String -> IO ()
+#+END_SRC
+
+#+BEGIN_SRC haskell
+import System.IO  
+  
+main = do  
+contents <- readFile "input.txt"  
+putStr contents 
+#+END_SRC
+
+* IO is a monad
+
+We've been describing IO actions, =IO t=, as a sort of container for a
+value of type =t=.
+
+Wrapping up a =t=-value in an IO action means that it is -- we can't use
+this value in our pure code unless we "pull" it back out with =<-=.
+
+=IO= is actually an instance of an important typeclass called =Monad=.
+
+The "container" metaphor holds reasonably well for other monads but,
+generally speaking it's more accurate to think of them as a way to
+sequence a series of expressions.
+
+* The =Monad= typeclass
+
+A monad, =M=, provides a way to wrap up a value in the monad, which
+we've already seen and used: =return=.
+
+It also provides a way to sequence functions over monads, using the
+operations, =>>== and =>>=:
+
+#+BEGIN_SRC haskell
+class Monad m where
+  (>>=) :: m a -> (a -> m b) -> m b
+  (>>) :: m a -> m b -> m b
+  return :: a -> m a
+#+END_SRC
+
+* The =Monad= typeclass
+
+#+BEGIN_SRC haskell
+(>>=) :: m a -> (a -> m b) -> m b
+#+END_SRC
+
+=>>== takes a monadic action as it's first argument, performs it, then
+passes the result to it's second argument, which is a function.
+
+#+BEGIN_SRC haskell
+(>>) :: m a -> m b -> m b
+#+END_SRC
+
+=>>= takes a monadic action as its first argument, performs it and
+throws away the result, then performs its second argument, also a
+monadic action.
+
+* =do= is syntactic sugar
+
+=do= is a convenient way to combine IO actions, but we could live
+without it. We can use the monadic style for writing our IO programs,
+and you will often read code that does.
+
+#+BEGIN_SRC haskell
+main :: IO ()
+main = do
+  inp <- openFile "input.txt" ReadMode
+  out <- openFile "out.txt" WriteMode
+  str <- hGetContents inp
+  hPutStr out str
+  hClose inp
+  hClose out
+#+END_SRC
+
+* =do= is syntactic sugar
+
+The same program, refactored to use .
+
+#+BEGIN_SRC haskell
+-- same as
+main :: IO ()
+main = openFile "input.txt" ReadMode >>= \inp ->
+ openFile "out.txt" WriteMode >>= (\out ->
+   hGetContents inp >>= hPutStr out 
+>> hClose out)
+ >> hClose inp
+#+END_SRC
+
+If you find the version that uses =do= easier to understand, carry on
+using =do= and don't worry about it. Once you understand this style
+however, it can be very nice and succinct.
+
+* IO Summary
+
+Haskell uses the type system to separate the pure and impure parts of
+our program.
+
+The IO system is easy to use and has many convenient functions that make
+IO-bound code succinct and easy to read.
+
+* Case Study: Spamfilter
+#+BEGIN_center   
+#+ATTR_ORG: :width 800 
+[[./images/spam.jpg]]
+#+END_center
+
+* Case study: Spamfilter
+
+** Functional problem-solving and using what you've learned so far
+
+* Skills at your disposal
+
+Let's recap what you have learned so far:
+
+- How to write programs , using patterns like =map=, =filter= and
+  =fold=.
+
+- How to write programs that manipulate in lots of ways, both by using
+  =Prelude= functions and doing it more directly.
+
+- How to create your own and write functions that use them.
+
+- How to do some .
+
+This is enough to write some really useful programs.
+
+* Case study
+
+This week we are going to look at a case study that will require us to
+write a longer program than we've seen before.
+
+The main purpose is to see how you can apply what you've learned so far,
+and to focus on an approach to .
+
+A solution to this problem will include a few things you haven't seen
+yet, like connecting to a relational database from a Haskell program,
+but I'll explain those as we go.
+
+* Functional problem solving
+  :PROPERTIES:
+  :CUSTOM_ID: sec:haskell-cont
+  :END:
+
+* Thinking functionally
+
+The Haskell functions we have written so far have mostly been just a few
+lines long.
+
+That's a good thing and we want to maintain it wherever possible!
+
+A key aspect of thinking functionally is to a problem (often but not
+always ) into smaller and smaller problems, until the problems are so
+small that the functions virtually write themselves.
+
+* Thinking functionally
+
+Functional problem-solving in Haskell also means .
+
+If we can start off with the right types for the functions we are
+writing, we will be half way there.
+
+Even though we are solving a particular problem, we will carry on using
+(typeclasses, functions that will work with any type...) to our
+advantage.
+
+* The problem: filtering spam
+
+** Spam: a major headache 
+
+According to Commtouch's /Internet Threats Trend Report/ in 2021 some
+*320 billion* spam emails were sent *every day*, and *94% of malware*
+was delivered via this medium.
+
+* The problem: spam
+
+However, spam has come to seem like a "solved problem" to many people.
+
+Spam is automatically sorted by your email provider (e.g. the
+university) into some folder that you can check but never do.
+
+Spam filters are now very effective -- some spam gets through, but not
+that much...occasionally "ham" messages get classified as spam, but not
+that often...
+
+But more spam is sent than ever before and spammers come up with new
+techniques all the time.
+
+* The problem: spam
+
+In this lecture we will go though the process of writing a simple spam
+filter, capable of classifying individual messages as spam or ham.
+
+The code is written using the Haskell you have learned so far and a few
+libraries.
+
+Rather than presenting you with finished code, the idea is to go through
+the processes of refinement, trial and error, and banging your head
+against the keyboard that are features of real life.
+
+* The code
+
+After the lecture you can download the application and read the code for
+yourself: [[https://github.com/jimburton/spamfilter]]
+
+* Statistical approach to spam
+
+Early approaches to detecting spam were mostly looking for warning signs
+like the presence of HTML, particular words like "sex", or SHOUTING.
+
+If spammers change strategy, these methods will be useless. We can't
+make new rules fast enough.
+
+* Statistical approach to spam
+
+The advantage of statistical methods is that they can be trained on
+large collections of spam and ham, and they can keep learning as they
+are used. 
+
+So, as the spammers adopt new strategies, statistical methods can keep
+up.
+
+* Statistical approach to spam
+
+Using a statistical approach to spam means /calculating the probability
+that a message is spam/ham based on its contents/.
+
+We can calculate the probability that a given word, $w$, appears in spam
+by looking at lots of messages that we know are ham or spam ( the
+filter) then dividing the number of spams that $w$ appears in by the
+total number.
+
+* Statistical approach to spam
+
+So, for every word in our message, we can work out the probability that
+it appears in spam or ham.
+
+We need to combine these probabilities to work out /the probability that
+the message itself is spam or ham/.
+
+* Statistical approach to spam
+
+If the probabilities for each word were independent, then it would be
+mathematically sound to multiply them together to get a combined
+probability.
+
+But they are not independent -- certain words are likely to appear
+together, while others never do.
+
+* Statistical approach to spam
+
+We can combine a set of probability scores that depend on each other
+using techniques. The details of the maths involved are beyond the scope
+of this lecture.
+
+Paul Graham pioneered this approach in 2002, and wrote an influential
+essay about it, /A Plan for Spam/[fn:2].
+
+Gary Robinson improved on Graham's approach[fn:3] and the statistical
+methods we use are based on his work.
+
+* Some requirements
+
+Our spam filter needs to be have the following features:
+
+- We should be able to on collections of messages and of the training.
+
+- We should be able to new messages as ham or spam, based on the results
+  of the training. If the spam-probability, $p$, of a message is 0.4 or
+  less, the classifier will respond with the pair . If $p >= 0.6$, the
+  response should be . Otherwise, .
+
+* Initial datatypes
+
+#+BEGIN_SRC haskell
+data MsgType = Ham | Unclear | Spam deriving Show
+
+classification :: Float -> MsgType
+classification s | s <= 0.4 = Ham
+   | s >= 0.6 = Spam
+   | otherwise = Unclear
+#+END_SRC
+
+* Thinking functionally
+
+One aspect of /thinking functionally/ is to focus on telling the
+computer *what to do*, not on *how to do it*.
+
+We then have a choice about whether to begin /top down/ or /bottom
+up/.
+
+My approach usually begins top down, thinking about a high level
+requirements, then decomposing that requirement until I have something
+small and tractable to work on.
+
+So the design process is top down, but the coding process is mostly
+bottom up.
+
+* Top-down design, bottom-up coding
+ 
+Thinking top-down, we need to produce a function that takes the contents
+of a message as a string and produces a score.
+
+#+BEGIN_SRC haskell
+classify :: String -> ... -> (MsgType, Float)
+#+END_SRC
+
+What else will =classify= need to know in order to do its work?
+
+* Top-down design, bottom-up coding
+
+From the literature, we can see that a Bayesian method needs to know
+three things:
+
+1. the total number of ham messages seen in training,
+
+2. the total number of spam messages seen in training, and
+
+3. a record of a every word seen in training, along with the number of
+   times it occurred in ham, and the number of times it occurred in
+   spam.
+
+* Top-down design, bottom-up coding
+
+We will store the words and their individual ham-counts and spam-counts
+in a .
+
+This is a lookup table or "dictionary" that will allow us to look up a
+word and retrieve its hamcount and spamcount.
+
+Instead of a map from strings to pairs of =Int=s, we will store the data
+associated with a individual word in a new datatype, making it easier to
+add more data later on.
+
+* A =Map= of =WordFeature=s
+
+We can use our =Map= like so:
+
+#+BEGIN_SRC haskell
+import qualified Data.Map as M
+
+-- everything we need to know about an individual word 
+data WordFeature = WordFeature {word :: String,
+  hamcount :: Int,
+  spamcount :: Int}
+
+> let wf = WordFeature {word = "Bananas", hamcount = 0, spamcount = 0}
+> let m = M.insert "Bananas" wf M.empty
+> M.lookup "Bananas" m
+Just WordFeature {word = "Bananas", hamcount = 0, spamcount = 0}
+> M.lookup "Oranges" m
+Nothing
+#+END_SRC
+
+* Data structures and performance
+
+=Data.Map= stores its data in a , giving us $O(\mathtt{log}\ n)$
+performance for lookups.
+
+There are data structures with better performance -- using
+=Data.Hashtable= would give us constant time lookups, $O(1)$.
+
+However, we can only use a =Hashtable= inside an IO action.
+
+This would violate one of our design goals -- .
+
+* A =Map= of =WordFeature=s
+
+Now we know what the type of the =classify= function should be:
+
+#+BEGIN_SRC haskell
+import qualified Data.Map as M
+
+-- everything we need for the stats routines
+type WMap = (Int, Int, M.Map String WordFeature)
+
+classify :: WMap -> String -> (MsgType, Float)
+#+END_SRC
+
+* Classifying features
+
+=classify= needs to extract the word features from a string by looking
+them up in the =WMap= then work out the overall probability score.
+
+#+BEGIN_SRC haskell
+classify :: WMap -> String -> (MsgType, Float)
+classify wm str = let feats = extractFeatures wm str
+  s = score wm feats in
+(classification s, s)
+#+END_SRC
+
+* Extracting features
+
+Extracting the features from a string will just mean looking them up in
+the =WMap=:
+
+#+BEGIN_SRC haskell
+{-| Turn a string into a list of WordFeatures. -}
+extractFeatures :: WMap -> String -> [WordFeature]
+extractFeatures m = map (getWordFeature m) . words 
+
+{-| Look up a word in the WMap, retrieving the WordFeature associated
+with this word. If it isn't in the WMap yet, create a new WordFeature. -}
+getWordFeature :: WMap -> String -> WordFeature 
+getWordFeature (_, _, m) str = case M.lookup str m of 
+  (Just wf) -> wf
+  Nothing -> WordFeature {word = str, 
+hamCount = 0, 
+spamCount = 0} 
+#+END_SRC
+
+* Scoring a set of =WordFeature= values
+
+Having looked up all the =WordFeature= values in an email, we pass them to the
+=score= function:
+
+#+BEGIN_SRC haskell
+{-| Produce a score for a list of WordFeatures representing an individual message. -}
+score :: WMap -> [WordFeature] -> Float
+#+END_SRC
+
+* Scoring a set of =WordFeature=s
+
+The =score= function does its work by applying statistical methods.
+These are implemented in a series of pure functions that I ported from
+an implementation in Common Lisp:
+
+#+BEGIN_SRC haskell
+{-| The basic probability that a WordFeature contains a spam word. -}
+spamProb :: WMap -> WordFeature -> Float
+
+{-| The Bayesean probability that a WordFeature contains a spam word. -}
+bayesSpamProb :: WMap -> WordFeature -> Float
+
+{-| Fisher's combined probability test. -}
+fisher :: [Float] -> Int -> Float
+
+{-| The inverse chi-squared function. -}
+inverseChiSquare :: Float -> Int -> Float
+#+END_SRC
+
+* Classification
+
+So, once we found the right stats functions and implemented them,
+classification was pretty easy. The main functions are =classify= and
+=score=:
+
+#+BEGIN_SRC haskell
+
+{-| Classify the contents of a message as Ham|Spam|Unclear, based on
+the contents of the WMap. -}
+classify :: WMap -> [String] -> (MsgType, Float)
+
+{-| Produce a score for a list of WordFeatures representing an individual message. -}
+score :: WMap -> [WordFeature] -> Float
+#+END_SRC
+
+* Training
+
+Now we need to get the training information into the =WMap= so that it
+can eventually be passed to =classify=.
+
+Our =train= function will take a =WMap=, the contents of an email, and a
+=MsgType= to say whether we are training on ham or spam:
+
+#+BEGIN_SRC haskell
+train :: WMap -> String -> MsgType -> WMap
+#+END_SRC
+
+* Training
+
+#+BEGIN_SRC haskell
+train :: WMap -> String -> MsgType -> WMap
+train wm s t = ...
+#+END_SRC
+
+=train= needs to extract the words from the string and look them up in
+the =WMap=. If they are there, we update =hamcount= or =spamcount=,
+depending on whether we are training for ham or spam.
+
+If the word isn't in the =WMap= then the filter has never encountered it
+before, so we will insert a new entry with =hamcount= and =spamcount=
+set to 1 or 0, depending on what we are training for.
+
+* Training
+
+We turn the string into a list of words then fold a function over the
+list that will update the =WMap= for every word.
+
+#+BEGIN_SRC haskell
+train :: WMap -> String -> MsgType -> WMap
+train m s t = foldl (incrementCount t) m (words s)
+
+{-| Update the ham or spam counts in the WMap for this particular word. -}
+incrementCount :: MsgType -> WMap -> String -> WMap
+#+END_SRC
+
+/(You can read the code for =incrementCount= on github.)/
+
+* Training
+
+Now we should have enough to do some training!
+
+*Demo* =CI505/examples/Spam.hs=
+
+* IO
+
+Now that we have got the bare bones of this working, we need to turn it
+into a program that can be trained on directories containing lots of ham
+or spam.
+
+We also need to store the results of the training (the updated =WMap=),
+so that it can be used in the next session.
+
+We will start off by setting up a proper module structure before writing
+any more code.
+
+* Modules
+
+We break down the functionality of our program into related subsets:
+
+- The entry point. We'll put this in a module called , which is
+  necessary if we want to make a standalone executable at some point.
+
+- The stats functions. We will put these in a module called .
+
+- The training functions, in a module called .
+
+- The code that saves the result of training -- we can call the module
+  for now.
+
+* Training on files
+
+Refactoring our training code to train on files means changing the type
+of =train= so that it takes a =FilePath=, which might be an individual
+file or a directory containing lots of files.
+
+The result will be wrapped up in an IO action. It is a =Maybe WMap=
+because the IO action might go wrong (e.g. the file might not exist):
+
+#+BEGIN_SRC haskell
+train :: WMap -> FilePath -> MsgType -> IO (Maybe WMap)
+#+END_SRC
+
+* Training on files
+
+I started off with something like this:
+
+#+BEGIN_SRC haskell
+import System.IO
+
+train :: WMap -> FilePath -> MsgType -> IO (Maybe WMap)
+train wm path t = do
+  str <- readFile path
+  let ws = words str
+  return $ Just (foldl (incrementCount t) wm ws)
+#+END_SRC
+
+* Training on files
+
+But as soon as I ran this on a directory with a couple of hundred emails
+in it...
+
+#+BEGIN_EXAMPLE
+Exception: /home/jb259/sa-corpus/easy_ham/1035.a3cdb2fe04945379483b12640bdb19d4: readFile: resource exhausted (Too many open files) 
+#+END_EXAMPLE
+
+The problem here is .
+
+Even though =readFile= will close the handle after reading, this won't
+happen /until we make use of the contents/. When we are doing IO it is
+often an advantage to be . So I switched to using =readFile= in
+=System.IO.Strict= and the problem went away.
+
+* Training on files
+
+The next problem was that some of the emails I had downloaded containing
+characters that were causing problems.
+
+For instance, one file contained the text "Pàdraig."
+
+In order to read in extended character sets (not just ASCII), I needed
+to use a =ByteString=. So the version of =readFile= that I ended up
+using was the one defined in =Data.ByteString.Char8=.
+
+* Training on files
+
+It was at this point that I noticed the filter was /nowhere near as
+accurate as I had hoped/ :-(
+
+After training on thousands of ham and spam messages, almost every
+classification came back as =Unclear=.
+
+I looked at the actual contents of a =WMap= after training and found
+that there was loads of junk in there. Email messages are made up of a
+header (containing technical jargon) followed by a message body.
+
+* Training on files
+
+I was using the =Prelude= function =words= to give me the "words" from
+the email, but that included non-words, bits of HTML and other things I
+didn't want to train on.
+
+I refactored =train= to use a to pick out just the words from the bodies
+of the emails.
+
+After doing this, the database was much smaller and =classify= became
+more accurate :-)
+
+* Persistence
+
+The program was now performing reasonably well. It was capable of
+training on large amounts of ham and spam, but /only within one session/
+-- as soon as the program ends, the training is lost.
+We could store the results of the training in a file -- this program
+will have a single user so that's a reasonable choice. But let's use a
+database instead, ensuring some consistency for our data and allowing us
+to update individual rows efficiently, etc.
+
+* Incorporating a database
+
+So each session with our program should now follow these steps:
+
+- Read the latest state of the filter from the database into a =WMap=.
+
+- If we have been asked to classify an email, pass the path to
+  =classify= along with the =WMap= and we are done.
+
+- If we have been asked to train, pass the path to =train= along with
+  the =WMap=. The result of =train= will be an updated =WMap= which we
+  then need to use to update the database.
+
+* The end result
+
+*Demo* (from the repo code and using sqlitebrowser to inspect the db.) 

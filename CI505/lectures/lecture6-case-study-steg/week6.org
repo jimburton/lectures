@@ -1,0 +1,550 @@
+* Introduction to Functional Programming
+
+** Case study: Practical Steganography
+
+#+BEGIN_center
+#+ATTR_ORG: :width 800 
+[[./images/steg.jpeg]]
+#+END_center
+
+* Case study: Practical Steganography
+
+Or,
+
+1. Learning about *parsing binary formats*,
+
+2. *refactoring* a functional program to make it easier to maintain
+   and extend,
+
+3. writing our own *typeclass* and using some *GHC extensions*.
+
+* Steganography
+
+Steganography is a set of techniques for *hiding a message inside some
+other data*.
+
+It has been practised since ancient times, e.g. the first letter of each
+line in an acrostic poem forms a "hidden" message.
+
+From our point of view, we want to hide a /text message/ in a /binary file/
+so that no one could tell there was anything unusual about the file (but
+our message can be recovered at a later date).
+
+* Steganography
+
+Making arbitrary changes to binary data could corrupt the file or garble
+the contents.
+
+It can be done very effectively with image formats though, by making
+changes to /pixel data/.
+
+* Steganography
+
+This doesn't corrupt the file and results in tiny changes to colour
+values of pixels, too small to be detected by the human eye.
+
+The changes can, or course, be detected by an image diff tool like
+ImageMagick's =compare= utility, but only if you have access to the
+original.
+
+* How it works
+
+So that we make the smallest possible changes to the input image, we
+hide the message in the /least-significant bits/ of the pixel data.
+
+First, encode an ASCII message as a binary sequence.
+
+For instance, in the string =ab=, =a= has the ASCII value 97, while =b=
+is 98.
+
+The whole string is encoded as =0110000101100010=, which is the
+concatenation of the binary numbers equal to 97 and 98.
+
+* How it works
+
+Then, take the /body/ of a binary image file.
+
+The body is that part of the content which comes after a /header/, which
+contains metadata about the file, such as its format type, width and
+height, etc.
+
+The body contains the actual picture. Modify the data to overwrite the
+/least-significant bit/ (LSB) of each byte so that it contains part of
+the binary-encoded message.
+
+* How it works
+
+Say we want to store the message =a=, =01100001= in binary, and our
+image file uses a format in which each byte in the data represents a
+single pixel.
+
+The first eight bytes of the data might look as follows:
+
+#+BEGIN_EXAMPLE
+    00010101
+    10010001
+    01011111    
+    10111100
+    10010001
+    00010101
+    11011100
+    10010001
+#+END_EXAMPLE
+
+* How it works
+
+We need to change the last bit of every byte to the corresponding bit
+from the message, =01100001=:
+
+#+BEGIN_EXAMPLE
+    00010101 ---> 00010100 (flip)
+    10010001 ---> 10010001 (no change)
+    01011111 ---> 01011111 (no change)  
+    10111100 ---> 10111100 (no change)
+    10010001 ---> 10010000 (flip)
+    00010101 ---> 00010100 (flip)
+    11011100 ---> 11011100 (no change)
+    10010000 ---> 10010001 (flip)
+#+END_EXAMPLE
+
+* How it works
+
+Because this results in the change of a pixel's greyscale value from,
+say, 53 to 52, there is /no human-visible effect/.
+
+To extract the message, we collect the LSBs of modified data:
+
+#+BEGIN_EXAMPLE
+    0001010[0] 
+    1001000[1] 
+    0101111[1] 
+    1011110[0] 
+    1001000[0]
+    0001010[0]
+    1101110[0]
+    1001000[1]
+#+END_EXAMPLE
+
+* =steg=
+
+Our case study is of =steg=, a simple Haskell tool that allows the user
+to hide text content in binary file of several image formats.
+
+See the code online at [[https://github.com/jimburton/steg]].
+
+* Demo
+
++ Bury a message in an image file:
+#+BEGIN_EXAMPLE
+steg bury etc/samples/bmp/24bit/sea.bmp etc/samples/soseki.txt ~/tmp/secret.bmp
+#+END_EXAMPLE
++ Compare the two images:
+#+BEGIN_EXAMPLE
+compare etc/samples/bmp/24bit/sea.bmp ~/tmp/secret.bmp ~/tmp/diff.png
+#+END_EXAMPLE
++ Retrieve the secret message:
+#+BEGIN_EXAMPLE
+steg dig ~/tmp/secret.bmp
+#+END_EXAMPLE
+
+* The code
+
+The first thing we need to do is to read in an image file and identify
+the part of it which is pixel data.
+
+Probably the simplest image format out there is =PGM=.
+
+*Example.*
+
+* Parsing PGMs
+
+Our approach to parsing PGM files is taken from /Real World Haskell/. We
+need to read the whole file into a =ByteString=.
+
+The =ByteString= API includes a set of datatypes (strict or lazy) for
+binary data and functions for manipulating then. 
+
+We can treat the data as a stream of bytes or /unpack/ it into a
+regular string if we know it is textual data.
+
+* Parsing PGMs
+
+=ByteString= includes lots of functions whose names clash with functions
+from the prelude and elsewhere, so it is normal to import it qualified:
+
+#+BEGIN_SRC haskell haskell
+import qualified Data.ByteString as B
+#+END_SRC
+
+* Parsing PGMs
+
+After reading in our =ByteString=, we need to read the magic number from
+the first two bits, read some whitespace and throw it away, read in the
+width, and so on, eventually putting all the values into a datatype:
+
+#+BEGIN_SRC haskell haskell
+data PGM = PGM 
+  { width   :: Int
+  , height  :: Int
+  , maxGrey :: Int
+  , pgmData :: B.ByteString
+}
+#+END_SRC
+
+* Parsing PGMs
+
+Our main =parse= function will look like this:
+
+#+BEGIN_SRC haskell haskell  
+parse :: B.ByteString -> PGM
+#+END_SRC
+
+* Parsing PGMs
+
+Every function that parses some information from the input needs to
+return the /thing that it parsed/ and the /remaining data/, so that we
+can carry on parsing:
+
+#+BEGIN_SRC haskell haskell 
+parseMagicNumber :: B.ByteString -> (B.ByteString, B.ByteString)
+#+END_SRC
+
+We need functions with similar types to parse the width, the height,
+the max grey scale and the data itself...
+
+* Parsing PGMs
+
+But any of these functions could fail, so we will return a =Maybe=:
+
+#+BEGIN_SRC haskell haskell
+parseMagicNumber :: B.ByteString -> Maybe (B.ByteString, B.ByteString)
+
+parse :: B.ByteString -> Maybe PGM
+#+END_SRC
+
+* Putting it together
+
+Putting together all these functions that return a =Maybe= might look
+like this:
+
+#+BEGIN_SRC haskell haskell  
+parse :: B.ByteString -> Maybe PGM
+parse bs = case parseMagicNumber bs of
+   Nothing -> Nothing
+   Just (s, s') -> 
+     case parseWS s' of
+       Nothing -> Nothing
+       Just (_, s') -> 
+         case parseWidth s' of
+              ...
+#+END_SRC
+
+* =Maybe= is a monad
+
+But =Maybe= is a monad! We can use =do=-notation or, even better,
+monadic style:
+
+#+BEGIN_SRC haskell haskell 
+parse :: B.ByteString -> Maybe PGM
+parse bs = parseMagicNumber bs       >>= 
+           \(s, s') -> parseWS s'    >>=
+           \(s, s') -> parseWidth s' >>=
+               ...
+#+END_SRC
+
+(Recall the type of /bind/ and the =Maybe= monad instance.) 
+
+* Modifying the PGM data
+
+Having parsed a PGM into our datatype, we need to modify the LSBs in
+individual bytes in its pixel data.
+
+The first thing we want to do is turn a =ByteString= into a list of
+bytes, or =Word8= values:
+
+#+BEGIN_SRC haskell 
+bsToWords :: B.ByteString -> [Word8]
+#+END_SRC
+
+* Unpacking ~ByteString~
+
+=ByteString.uncons= extracts the head of a =ByteString=.
+
+We can use this to unpack into a list:
+
+#+BEGIN_SRC haskell 
+uncons :: B.ByteString -> Maybe (Word8, B.ByteString)
+
+bsToWords :: B.ByteString -> [Word8]
+bsToWords = bsToWords' []
+    where bsToWords' xs bs =  
+            let h = uncons bs in
+            case h of
+              Nothing -> xs
+              Just (w, bs') -> bsToWords' (wordToBits w ++ xs) bs'
+#+END_SRC
+
+* Folding for neater code
+
+=bsToWords= is a /primitive recursive/ function and =ByteString= is an
+instance of =Foldable=.
+
+This should ring a bell about the possibility of using a *fold* to
+neaten up the code.
+
+We need to apply =wordToBits= to every word in the input, appending the
+result onto what comes next.
+
+The base case is the empty list.
+
+#+BEGIN_SRC haskell 
+bsToWords = B.foldr ((++) . wordToBits) []
+#+END_SRC
+
+* Modifying LSBs
+
+Having got a list of words/bytes, we want to set the LSB of each byte to
+subsequent bits in the binary representation of the text to hide.
+
+Then we can put this together in a =buryText= function. 
+
+#+BEGIN_SRC haskell 
+modifyLSBs :: B.ByteString -> [Word8] -> B.ByteString
+
+buryText :: PGM -> String -> PGM
+#+END_SRC
+
+* Digging it back up again
+
+Retrieving a hidden message from a =ByteString= means collecting the LSB
+from each byte in the body of the input and packing that into a
+=ByteString= of its own, before converting to text.
+
+But how do we know how much to read?
+
+At this point I went back to =buryText= and made it hide some more
+information in the LSBs of the first 8 bytes - the length of the
+message to come.
+
+* Digging it back up again
+
+With that change, =digupText= ends up being very simple:
+
+#+BEGIN_SRC haskell 
+digupText :: PGM -> String
+digupText g = 
+  let lsbs   = getLSBs (pgmData g) 
+      bitLen = 8 * (binToDec (take 8 lsbs)) in
+  boolsToStr (take bitLen (drop 8 lsbs))
+#+END_SRC
+
+* Extending the program
+
+So far, we have functions to read and write PGM files, and hide and
+retrieve messages in LSBs of binary data.
+
+*This is the state of the program in the CI505 examples directory*.
+
+But if this is going to be more than a toy, we need it to work with
+other file formats.
+
+Our functions that operate just on the =PGM= ADT need to become
+polymorphic.
+
+* The =Steg= typeclass
+
+We need a typeclass that encapsulates what every image ADT we create
+will have to capable of doing:
+
+#+BEGIN_SRC haskell 
+class Steg t where
+   getData   :: t -> B.ByteString
+   setData   :: t -> B.ByteString -> t
+   getHeader :: t -> B.ByteString
+   sGetContents :: t -> B.ByteString
+#+END_SRC
+
+* =PGM= is a =Steg=
+
+We make =PGM= into an instance of the =Steg= typeclass:
+
+#+BEGIN_SRC haskell 
+instance Steg PGM where
+    getData     = pgmData
+    setData g d = g { pgm = d }
+    getHeader   = pgmHeader
+    sGetContents g = B.concat [getHeader g, getData g]
+#+END_SRC
+
+(=pgmHeader= concats everything that comes before the data into a
+=ByteString=.)
+
+* Writing polymorphically
+
+Now the functions that write images can work with =Steg=, rather than
+just =PGM=:
+
+#+BEGIN_SRC haskell 
+output :: Steg t => FilePath -> t -> IO ()
+output path s = 
+        B.writeFile path $ sGetContents s
+#+END_SRC
+
+And when we declare instances of =Steg= for, say, JPG or GIF, =output=
+carries on working with no changes needed.
+
+* Applying some structure
+
+With the typeclass in place, I now have some basic IO functions, some
+general functions that work with =ByteString= and instances of =Steg=,
+and some which are specific to the PMG format.
+
+I don't want all of those in the same module, so switch to this
+structure:
+
+#+BEGIN_EXAMPLE  
+src/
+  Main.hs -- entry point
+  Steg/
+    Parse.hs -- parsing, bit-twiddling etc  
+    Format/
+      StegFormat.hs -- the typeclass etc
+      PGM.hs -- format-specific
+#+END_EXAMPLE 
+
+* What about parsing?
+
+We wrote a polymorphic function to write the contents of a =Steg= to
+file. 
+
+Parsing images and returning a =Steg= polymorphically isn't so easy
+though.
+
+At some point, we need to call the /specific/ function that knows how to
+parse a specific format.
+
+* What about parsing?
+
+We'd like to add a =parse= function to the =Steg= typeclass:
+
+#+BEGIN_SRC haskell
+class Steg t where
+    getData      :: t -> B.ByteString
+    setData      :: t -> B.ByteString -> t
+    getHeader    :: t -> B.ByteString
+    sGetContents :: t -> B.ByteString
+    parse        :: B.ByteString -> t
+#+END_SRC
+
+* What about parsing?
+
+Then write a polymorphic parsing function that just calls the right
+version of =parse= for the datatype we are dealing with.
+
+Say we add support for BMP files:
+
+#+BEGIN_SRC haskell
+parseAny :: Steg t => B.ByteString -> Maybe t
+parseAny bs = 
+    case idHeader bs of --identify the format
+      Just PGM -> parsePGM bs
+      Just BMP -> parseBMP bs
+      -- add more formats here...
+      Nothing  -> Nothing
+#+END_SRC
+
+*But this doesn't work :-(* The compiler complains that it doesn't
+know what type =t= is.
+
+* What about parsing?
+
+The problem is that =parseAny= isn't /typesafe/. 
+
+It has to work for /all possible instances/ of =Steg=, not just the
+ones we've included in the case statement. 
+
+* What about parsing?
+
+When we call =parsePGM= we are trying to force the type variable =t=
+to be =PGM=.
+
+#+BEGIN_SRC haskell
+parseAny :: Steg t => B.ByteString -> Maybe t
+parseAny bs = 
+    case idHeader bs of --identify the format
+      Just PGM -> parsePGM bs
+      Just BMP -> parseBMP bs
+      -- add more formats here...
+      Nothing  -> Nothing
+#+END_SRC
+
+* Existential types
+
+We can get around this by /boxing/ the image ADT inside a wrapper
+type.
+
+So that the outside world can't see what is inside the box, we need a
+language feature which isn't part of the Haskell 2010 standard --
+/existential types/.
+
+* Existential types
+
+#+BEGIN_SRC haskell
+{-# LANGUAGE ExistentialQuantification #-}
+data StegBox = forall n. Steg n => StegBox n
+#+END_SRC
+
+Note that the type variable =n= doesn't appear on the left of the
+definition. No one will know what is in the box...
+
+* Wrapping =PGM= in a =StegBox=
+
+Now we need to make a small change to =parsePGM=:
+
+#+BEGIN_SRC haskell
+-- | Parse a PGM from a ByteString. 
+parsePGM :: B.ByteString -> Maybe StegBox
+parsePGM s =
+    matchHeader magicPGM s           >>=
+    -- etc...
+             in
+    Just $ StegBox (PGMmap header bitmap)
+#+END_SRC
+
+* Existential types
+
+And now we can write a truly polymorphic parse function that will return
+a =StegBox= with an instance of =Steg= insode it:
+
+#+BEGIN_SRC haskell
+parseAny :: B.ByteString -> Maybe StegBox
+parseAny bs = 
+    case idHeader bs of
+      Just PGM -> parsePGM bs
+      Just BMP -> parseBMP bs
+      Nothing  -> Nothing
+#+END_SRC
+
+* Adding other formats
+
+With this structure in place, it was easy to add support for other
+formats.
+
+To make it work with BMP files, I used an existing codec rather than
+doing the parsing myself.
+
+See =Steg.Format.BMP= in the git repository.
+
+* Summary
+
+This case study has three main purposes:
+
+1. To introduce =ByteString= and the idea of parsing binary formats.
+
+2. To explain how you can use /typeclasses/ and concepts like
+   /existential types/ to write more polymorphic code.
+
+3. To show the evolution of a program through several refinements.
+
+Check out code from the git repository, read it, run it and make some
+changes to it.
