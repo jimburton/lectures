@@ -1,3 +1,5 @@
+* Introduction to Functional Programming
+
 * What's the problem with monads?
 
 You have now been using monads for quite a few months.

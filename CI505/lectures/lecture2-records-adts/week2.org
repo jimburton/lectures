@@ -1,3 +1,9 @@
+* CI505 Introduction to Functional Programming
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[../common/images/logo7000.png]]
+#+END_center
+
 * Tuples
 
 Tuples are the simplest data structure: comma-separated lists of values

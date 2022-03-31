@@ -1,6 +1,10 @@
-* Introduction and overview
+* CI505 Introduction to Functional Programming
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[../common/images/logo7000.png]]
+#+END_center
 
-** Introduction to Functional Programming 
+* Introduction to Functional Programming 
 
 The functional paradigm is now widely recognised as *an essential tool
 in tackling the hard problems of 21st century computing*.  
@@ -66,9 +70,13 @@ This style of programming focuses on telling the computer *how* to
 solve the problem:
 
 #+BEGIN_SRC java
-int result = 0;
-for (int i=0;i<list.length();i++) {
-  result += list.get(i);
+// adding a list of integers in Java
+public int sum(List<Integer> list) {
+  int result = 0;
+  for (int i=0;i<list.length();i++) {
+    result += list.get(i);
+  }
+  return result;
 }
 #+END_SRC
 
@@ -78,7 +86,10 @@ Haskell, on the other hand, focuses on telling the computer *what*
 problem to solve, not *how* to do it.
 
 #+BEGIN_SRC haskell
-sum list
+-- Adding a list of integers in Haskell
+sum :: [Int] -> Int
+sum []     = 0
+sum (x:xs) = x + sum xs
 #+END_SRC
 
 (In this respect, Haskell is a *declarative* language, like SQL, as
@@ -87,14 +98,14 @@ well as functional one.)
 * Paradigm $>$ syntax
 
 Learning another language in a paradigm you already know means mastering
-new syntax and tools, but won't change your practice as a programmer
+new *syntax* and *tools*, but won't change your practice as a programmer
 much.
 
 If you already know Java, learning C# is not going to blow your
 mind...
 
-However, learning a really can change the way you think about
-programming computation.
+However, learning a new /paradigm/ really can change the way you think
+about programming and computation.
 
 For instance, some of the hard problems in parallel computation become
 "easy" in a functional setting.
@@ -122,64 +133,102 @@ worry if you don't immediately understand something...
 
 * Haskell basics
 
+Types are really important in Haskell!
+
+We have the basic types you'd expect:
+
++ Various kinds of numbers: =Int= (fixed precision, i.e. there is a
+  maximum value), =Integer= (arbitrary precision), =Float= etc,
+
++ =Bool=, whose values are =True= and =False=,
+
++ =Char=, a character in single quotes, e.g. ='A'=,
+
++ =String=, given in double quotes, e.g. "Haskell" (a =String= is a
+  /list/ of =Char= values), and
+
++ /Tuples/, e.g. =(42, True)=.
+
+* Haskell basics
+
 ** The basic types
 
-Int, Bool, Char, String, Tuples
+In Haskell two colons are used to state the type of a value.
 
-| 5 :: Int| | 'Y' :: Char|
-|         | |            |
-| True :: Bool|| False :: Bool  |
-|         | |            |
-| "Hello" :: String   || asciiCode :: Char -> Int   |
+E.g. read =x :: Int= as "=x= has the type =Int=" or "=x= is an =Int=".
 
+The tuple type is made up of the the type of the things in it.
+
+E.g. =(42, True) :: (Int, Bool)=
+ 
 * Haskell basics
 
 Comments can be single- or multi-line:
 
 #+BEGIN_SRC haskell
-{- The first line of the declaration below is the type 
-of the function, the next is the definition.
-The type says that divMod takes two Ints and
-returns a pair of Ints.
+{- A Multi
+line
+comment
  -}
-divMod :: Int -> Int -> (Int, Int)
-divMod x y = (div x y, mod x y) -- div and mod at same time
 
--- in a ghci session...
-> divMod 9 2
-(4, 1)
+-- A single line comment
 #+END_SRC
 
 * Haskell basics
 
 ** The function type
 
-Let's take a closer look at the function type:
+The type of a function is written with an "arrow":
 
-=asciiCode :: Char -> Int=
+=timesTwo :: Int -> Int=
 
-This means that =asciiCode= is a function that accepts any =Char= value
+This says that =timesTwo= is a function that accepts any =Int= value
 as input and returns an =Int= value as output.
 
-This is the of =asciiCode=, and we also need a definition:
+Pronounce the arrow as "to". So the type of =timesTwo= is read "=Int=
+to =Int=". 
 
-=asciiCode :: Char -> Int=
-=asciiCode c = ord c=
+As well as stating the /type/, a function needs a /definition/:
 
-* Haskell basics
+#+BEGIN_SRC haskell
+timesTwo :: Int -> Int
+timesTwo x = x * 2
+#+END_SRC
 
-** The function type
+* Haskell functions
 
-Haskell functions can take more than one input. The last type is always
-the return type:
+In the definition we give a name to the parameters to the function on
+the left hand side of the equals sign.
+
+=timesTwo= takes one argument, which we decided to call =x=. 
+
+#+BEGIN_SRC haskell
+timesTwo :: Int -> Int
+timesTwo x = x * 2
+#+END_SRC
+
+On the right hand side of the equals sign comes the /body/ of the function.
+
+Whatever the result of evaluating the body is, that's the return value
+of the function (no need for a =return= statement).
+
+* Haskell functions
+
+Functions can take more than one parameter. The last type is always
+the return type.
+
+=multiply= takes two Ints and returns an Int. Its type is =Int= to
+=Int= to =Int=.
 
 #+BEGIN_SRC haskell
 multiply  :: Int -> Int -> Int
 multiply x y = x * y
 #+END_SRC
 
-They can also be defined to work on any type -- this is (like Java
-generics):
+* Haskell functions
+
+They can also be defined /polymorphically/, i.e. working on any type,
+like Java generics:
 
 #+BEGIN_SRC haskell
 makePair  :: a -> b -> (a, b)
@@ -197,54 +246,66 @@ to do, so they are an important source of documentation.
 Also, if the compiler disagrees with the type signature you supplied, it
 will let you know!
 
-* Haskell basics
+* if .. then .. else
 
-** Function definition, lambdas, if .. then .. else
+Unlike some languages, every =if= statement has to have an =else=
+statement. 
+
 #+BEGIN_SRC haskell
-id :: a -> a
-id x = x
-square :: Int -> Int
-square x = x*x
+lt :: Int -> Int -> String
+lt x y = if x < y then "True" else "False"
 #+END_SRC
-* Haskell basics
 
-** Function definition, lambdas, if .. then .. else
+* if .. then .. else
+
+We can put the =if= statement on one line, or over several lines.
 
 #+BEGIN_SRC haskell
-lt :: Int -> Int -> Bool
-lt x y = if x < y then True else False
+lt :: Int -> Int -> String
+lt x y = if x < y 
+         then "True" 
+         else "False"
+#+END_SRC
 
+The indentation *must* be correct -- Haskell is *whitespace sensitive*.
+
+* Pattern matching
+
+This is a (silly) function that uses /pattern matching/.
+
+#+BEGIN_SRC haskell
+isABC :: Char -> Bool
+isABC 'A' = True
+isABC 'B' = True
+isABC 'C' = True
+isABC _   = False
+#+END_SRC
+
+Instead of naming the =Char= parameter to the function, we've given
+several /patterns/ it might match.
+ 
+There are four versions of the function (called /equations/), and
+which one is applied will depend on which pattern matches the input.
+
+The underscore pattern matches anything.
+
+* Pattern matching
+
+Pattern matching is a /very/ powerful feature. 
+
+If you learn Haskell you will miss pattern matching when you go back
+to other languages!
+
+As well as matching something literally, we can use it to
+"deconstruct" a parameter into its parts.
+
+#+BEGIN_SRC haskell
 fst :: (a, b) -> a
 fst (x, y) = x
-
-not :: Bool -> Bool
-not p = if p then False else True
 #+END_SRC
-* Haskell basics
 
-** Function definition, lambdas, if .. then .. else
-
-=not :: Bool -> Bool=
-
-What does =not= do? There are only three things it might do:
-
-- return its argument unchanged,
-
-- return a constant value,
-
-- negate its argument.
-
-It cannot write a file, access a database or pick a random value. This
-makes it possible for us to reason about our code more easily.
-
-* Haskell basics
-
-** Function definition, lambdas, if .. then .. else
-
-Going back to =fst=, there is a deep sense in which any non-pathological
-function with this type signature must do what =fst= does:
-=fst :: (a, b) -> a=
-=fst (x, y) = x=
+Here there is only one equation, but we use the pattern to give a name
+to the parts of the tuple. Then we can refer to the part we need.
 
 * Haskell basics
 
@@ -252,24 +313,17 @@ function with this type signature must do what =fst= does:
 
 Lists are very widely used, with special syntactic support.
 
-- Literal lists: =[1, 2, 3]=
+- Literal lists, written in square brackets: =[1, 2, 3]=
 
 - Ranges: =[1..99]=, =[1..]=
 
-- Adding to a list: =’A’: [’b’, ’c’]=
+- Adding a value to the "head" of a list ("consing"): =’A’: [’b’, ’c’]=
 
-- Joining lists: =[1, 2, 3] ++ [4, 5, 6]=
+- Joining ("concatenating") lists: =[1, 2, 3] ++ [4, 5, 6]=
 
 - List comprehensions: =[(x, x) | x <- [0..]]=
 
-A =String= is a list of =Char= values. (There are more efficient
-"string-like" types that we will come on to.)
-
-* Haskell basics
-
-** Lists
-
-Functions on lists.
+* Pattern matching on lists
 
 #+BEGIN_SRC haskell
 null :: [a] -> Bool
@@ -277,16 +331,15 @@ null []     = True
 null (x:xs) = False
 #+END_SRC
 
-This is a function that uses /pattern matching/.
+The pattern =[]= matches the empty list.
 
-There are two versions of the function, and which one is applied will
-depend on which pattern matches the input.
+The pattern =(x:xs)= matches a list with a head, which we're calling
+=x=, and a /tail/, which we're calling =xs=. 
 
-We say this function is made up of  two /equations/. 
+The tail might be empty, so all we know is that this list has at least
+one element.
 
-* Haskell basics
-
-** Local variables
+* Local variables
 
 We often need to create and hang onto temporary values while
 calculating the final value of the function.
@@ -304,42 +357,39 @@ initials firstname lastname = [f] ++ ". " ++ [l] ++ "."
 initials :: String -> String -> String  
 initials firstname lastname = let f = head firstname 
                                   l = head surname in
-  [f] ++ ". " ++ [l] ++ "."  
+   [f] ++ ". " ++ [l] ++ "."  
 #+END_SRC
 
-* Haskell basics
+* The head and tail of a list
 
-** The head and tail of a list
+How can we take the head of an empty list?
+
+There is nothing to return...unlike some languages, we can't return
+=null= but we can throw an =error=.
 
 #+BEGIN_SRC haskell
 head :: [a] -> a
-head [] = "empty list"
+head []     = error "empty list"
 head (x:xs) = x
+#+END_SRC
 
+We can always take the tail of a list though, even if it is empty.
+
+#+BEGIN_SRC haskell
 tail :: [a] -> [a]
-tail [] = []
+tail []     = []
 tail (x:xs) = xs
 #+END_SRC
 
-* Haskell basics
+* Recursion
 
-#+BEGIN_EXAMPLE  
-> head "Why not."
-'W'
-> tail [1..5]
-[2, 3, 4, 5]
-#+END_EXAMPLE
-* Haskell basics
-
-** Summing a list of Ints
+Wherever you would use a loop in another language, you use /recursion/.
 
 The /sum/ function adds up the contents of a list of =Int= values. 
 
-It is our first function that calls itself /recursively/.
-
 #+BEGIN_SRC haskell
 sum :: [Int] -> Int
-sum [] = 0
+sum []     = 0
 sum (x:xs) = x + sum xs
 #+END_SRC
 
@@ -347,7 +397,8 @@ sum (x:xs) = x + sum xs
 
 ** Summing a list of Ints
 
-Evaluating =sum=.
+If the argument to =sum= is not the empty list it keeps calling itself
+until the pattern for the empty list matches.
 
 #+BEGIN_EXAMPLE
 sum [5, 6, 7]
@@ -357,6 +408,7 @@ sum [5, 6, 7]
 5 + 6 + 7 + 0      -- First equation of sum
 18                 -- Addition (+)
 #+END_EXAMPLE
+
 * NB: A simple computational model
 
 Note that in the previous slide we worked out what the =sum= function
@@ -365,29 +417,46 @@ does by replacing terms in a simple way.
 Expanding expressions in this way is really useful practice when getting
 to grips with functional programming for the first time.
 
-It is made possible by the fact that our functions have no side effects.
+It is made possible by the fact that our functions have no *side
+effects*.
 
-* Haskell basics
+More on this later!
 
-** Applying a function to every element of a list
+* Applying a function to every element of a list
+
+=map= applies a function to every element in a list
 
 #+BEGIN_SRC haskell
 map :: (a -> b) -> [a] -> [b]
-map f [] = []
+map f []     = []
 map f (x:xs) = f x : map f xs
 #+END_SRC
 
+The first argument to =map= is itself a function. That makes it our
+first /higher-order/ function. 
+
+We can tell that because of the brackets in =(a -> b)=.
+
+* Applying a function to every element of a list
+
+We can =map= the =isABC= function we defined earlier of a list of
+=Char= values. 
+
 #+BEGIN_EXAMPLE
-> map (\x -> x < 3) [1..5]
-[True, True, False, False, False]
+> map isABC ['A', 'B', 'C', 'D']
+[True, True, True, False]
 #+END_EXAMPLE
 
-* Haskell basics
+Because =isABC= takes a =Char= and returns a =Bool=, the result is a
+list of =Bool= values.
+* Filtering a list
 
-** Filtering a list
+Another function that takes a function as an argument. 
+
+The first argument to =filter= is a /predicate/ function. =filter=
+uses it to throw away anything for which the predicate is not true:
+
 #+BEGIN_SRC haskell
-isAsciiLower :: Char -> Bool
-
 filter :: (a -> Bool) -> [a] -> [a]
 filter p []     = []
 filter p (x:xs) = if p x 
@@ -396,39 +465,68 @@ filter p (x:xs) = if p x
 #+END_SRC
 
 #+BEGIN_EXAMPLE
-> filter isAsciiLower "How Do You Do."
-"owoouo"
+> filter isABC "THE CAT SAT ON THE MAT"
+"CAAA"
 #+END_EXAMPLE
 
-* Haskell basics
+* User defined types: sum types
 
-** User defined types
-#+BEGIN_SRC haskell
-data Bool = True | False
-
-data Colour = Red | Blue | Green | RGB (Int, Int, Int) 
-
-data Customer = Customer { id :: Int
-                         , name :: String
-                         , address :: [String]
-                         , serviceLevel :: Colour }
-#+END_SRC
-
-* Haskell basics
-
-** User defined types
-
-We can write functions defined over our new types:
+As well as using the types given to us, we can define our own.
 
 #+BEGIN_SRC haskell
-strToColour :: String -> Colour
-strToColour s = case s of
-                  "Red"   -> Red
-                  "Blue"  -> Blue
-                  "Green" -> Green
-                  _       -> RGB(0, 0, 0)
+data Colour1 = Red | Blue | Green
 #+END_SRC
 
+=Colour1= is the type and =Red=, =Blue= etc are the possible values,
+also called /data constructors/. 
+
+A type like this where values are one of a series of possible values
+is called a /sum type/.
+
+* User defined types: product types
+
+Data constructors can take arguments. This kind of type is known as
+/product type/.
+
+#+BEGIN_SRC haskell
+data Colour2 = RGB Int Int Int
+
+-- in ghci
+> :t (RGB 42 0 99)
+Colour2
+#+END_SRC
+
+* User defined types: records
+
+The last type of data constructor is /records/. These are data types
+with named fields.
+
+#+BEGIN_SRC haskell
+data Colour3 = Colour3 { red   :: Int
+                       , green :: Int
+                       , blue  :: Int
+                       }
+#+END_SRC
+
+More on records later!
+
+* User defined types
+
+We can write functions using our new types and pattern match over
+them:
+
+#+BEGIN_SRC haskell
+colour1ToStr :: Colour1 -> String
+colour1ToStr Red   = "Red"
+colour1ToStr Blue  = "Blue"
+colour1ToStr Green = "Green"
+
+mixColour2 :: Colour2 -> Colour2 -> Colour2
+mixColour2 (RGB r1 g1 b1) (RGB r2 g2 b2) = 
+              RGB (div (r1+r2) 2) (div (g1+g2) 2) (div (b1+b2) 2)
+#+END_SRC
+
+(=div= divides whole numbers whereas =/= is for real numbers.)
 * Functional Programming
 
 Functional programming is powerful and will make you a better
@@ -439,7 +537,7 @@ Work through the Haskell exercises in the lab.
 Work through the interactive tutorial online:
 [[http://tryhaskell.org/]]
 
-* References
+* Resources
 
 - The Haskell wikibook: http://en.wikibooks.org/wiki/Haskell,
 
@@ -448,18 +546,21 @@ Work through the interactive tutorial online:
 - /Real World Haskell/ (O'Reilly book): http://www.realworldhaskell.org
 
 
-* More Haskell features
+* Intermission
 
-** More about functions
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[../common/images/intermission.jpg]]
+#+END_center
 
-* Functions and application
+* More about functions
 
 We saw several functions previously, some using pattern matching.
 
 #+BEGIN_SRC haskell
 square x = x * x
 
-length []  = 0
+length []     = 0
 length (x:xs) = 1 + length xs
 #+END_SRC
 
@@ -483,7 +584,8 @@ checkList xs | null xs      = "Looks OK!"
 
 * Functions and application
 
-Functions are by supplying values -- no brackets or commas required.
+Functions are applied by supplying values -- no brackets or commas
+required. 
 
 #+BEGIN_SRC haskell
 -- a ghci session...
@@ -499,7 +601,7 @@ Functions are by supplying values -- no brackets or commas required.
 
 * Functions and application
 
-To create an anonymous function, use the backslash symbol.
+To create an /anonymous/ function, use the backslash symbol.
 
 #+BEGIN_SRC haskell
 -- a ghci session...
@@ -518,37 +620,37 @@ They can also be stored in lists, and whatever else we can do with
 any other values...
 
 #+BEGIN_SRC haskell
-mySum = (+) --bit pointless!
+applyArith op x y = op x y
 
-add5 = (\x -> mySum x 5)
+plus = applyArith (+)
 
-> mySum 2 2
+> plus 2 2
 4
-> add5 (mySum 2 2)
+#+END_SRC
+
+* Functions and application
+
+By default, functions are applied /infix/. We can apply them in an way using
+backticks:
+
+#+BEGIN_SRC haskell
+> plus 5 4
+9
+> 5 `plus` 4
 9
 #+END_SRC
 
 * Functions and application
 
-By default, functions are applied . We can apply them in an way using
-backticks:
-
-#+BEGIN_SRC haskell
-> sumsquares 5 4
-41
-> 5 `sumsquares` 4
-41
-#+END_SRC
-
 We can define our functions as infix in the first place (making them
 into /operators/), and use any non-reserved symbol:
 
 #+BEGIN_SRC haskell
-(<.>) :: Int -> Int -> Int
-(<.>) x y = sumsquares x y
+(<+>) :: Int -> Int -> Int
+(<+>) x y = plus x y
 
-> 5 <.> 4
-41
+> 5 <+> 4
+9
 #+END_SRC
 
 * Partial application
@@ -575,14 +677,15 @@ Here's another example of a function which has been partially applied.
 =(+1)= is the function which takes an =Int= and adds one to it.
 
 You can think of it as =(+)= "waiting" for its second argument.
+
+#+BEGIN_EXAMPLE 
 > map (+1) [1, 2, 3]
-=[2, 3, 4]=
+[2, 3, 4]
+#+END_EXAMPLE
 
-* More Haskell features
+* Sections and partial application
 
-** Sections and partial application
-
-And another: =(dropWhile isSpace)= is the function which takes =String=s
+And another: =(dropWhile isSpace)= is the function which takes a =String=
 and removes leading spaces.
 
 So =dropWhile= has received its first argument (a function that takes a
@@ -603,10 +706,11 @@ one, a =String=.
 Writing code in a style means leaving the arguments out of the
 definition. 
 
-The simplest case is to omit the last argument: toUpper :: Char ->
-Char
+The simplest case is to omit the last argument: 
 
 #+BEGIN_SRC haskell
+toUpper :: Char -> Char
+
 upperString :: String -> String
 upperString s = map toUpper s
 
@@ -616,14 +720,14 @@ upperString :: String -> String
 upperString = map toUpper
 #+END_SRC
 
-(Think about the types of map and toUpper)
+(Think about the types of =map= and =toUpper=.)
 
-* More Haskell features
+* Functional composition
 
-** Functional composition
+/Functional composition/ means combining two or more functions into a
+single function. 
 
-Functional composition means to combine two or more functions into a
-single function. This is powerful way to reuse code.
+This is powerful way to reuse code.
 
 The function (or operator) =(.)= "glues" two functions together:
 
@@ -635,9 +739,10 @@ The function (or operator) =(.)= "glues" two functions together:
 [2, 3, 4]
 #+END_SRC
 
-* More Haskell features
+Read =(.)= as "after". So the function above reads "=take 3= /after/
+=drop 1=".
 
-** Haskell is lazy!
+* Haskell is lazy!
 
 Haskell's semantics are /call by need/. 
 
@@ -656,8 +761,8 @@ ints = [1..]
 
 * Functions and application
 
-We have defined several arithmetic functions that only work for =Int=s.
-There are more number types though.
+We have defined several arithmetic functions that only work for =Int=
+values.  There are more number types though.
 
 - =Int=: fixed precision integers.
 
@@ -666,20 +771,22 @@ There are more number types though.
 - =Float= and =Double=: single and double precision floating point
   numbers.
 
-These (and more) are all part of the =Num= .
+These (and more) are all part of the =Num= /typeclass/.
 
 * Typeclasses and overloading
 
 Typeclasses provide support for generic programming and a form of
-overloading. Similar to but not the same as Java interfaces:
+overloading. 
+
+Similar to but not the same as Java interfaces:
 
 #+BEGIN_SRC haskell
 square :: Num a => a -> a
 square x = x * x
 #+END_SRC
 
-This means that =square= is defined for : integers, real numbers,
-fractions...
+This means that =square= is defined for /all numeric types/: integers,
+real numbers, fractions...
 
 * Typeclasses and overloading
 
@@ -687,32 +794,37 @@ Typeclasses are used wherever datatypes are expected to have something
 in common.
 
 A useful one is =Show=, the class of all things that can be printed out.
+
 If a type, =t=, is a member of the =Show= typeclass then the =show=
 function has to be defined for =t= values:
 
-#+BEGIN_SRC haskell
-printme :: Show a => a -> IO()
-printme x = putStrLn (show x)
-#+END_SRC
-
 * Typeclasses and overloading
-
-=show= is already defined for the standard types. When we create our own
-types we can add them to =Show= so that we can print them out:
 
 #+BEGIN_SRC haskell
 class Show a where -- this is defined in the Prelude
   show :: a -> String
+#+END_SRC
 
-data Colour = Red | Blue | Green
+To say a type is in this typeclass,we need to provide a definition of
+ =show=.
 
-instance Show Colour where
-  show Red  = ``Red''
-  show Blue  = ``Blue''
-  show Green  = ``Green''
+It is already defined for the standard types. 
 
-> printme Red
-``Red''
+* Typeclasses and overloading
+
+When we create our own types we can add them to =Show= so that we can
+print them out:
+
+#+BEGIN_SRC haskell
+data Colour1 = Red | Blue | Green
+
+instance Show Colour1 where
+  show Red   = "Red"
+  show Blue  = "Blue"
+  show Green = "Green"
+
+> show Red
+"Red"
 #+END_SRC
 
 * Typeclasses and overloading
@@ -720,37 +832,36 @@ instance Show Colour where
 We can get this for free using the =deriving= keyword:
 
 #+BEGIN_SRC haskell 
-data Colour = Red | Blue | Green deriving Show
+data Colour1 = Red | Blue | Green deriving Show
 
-> printme Red
-   ``Red''
+> show Red
+"Red"
 #+END_SRC
 
-* Typeclasses
-
-** Typeclasses: Eq
+* Typeclasses: Eq
 
 If we make a new data type and we want to be able to say if two values
 are equal or not, we have to say what means by making it an instance of
-the =Eq= typeclass.
+the =Eq= (pronounced /equals/) typeclass.
 
 #+BEGIN_SRC haskell
 
 class Eq a where
-(==) :: a -> a -> Bool
-(/=) :: a -> a -> Bool
+  (==) :: a -> a -> Bool
+  (/=) :: a -> a -> Bool
 
 data Colour = Red | Green | Blue deriving (Show, Eq)
-
-elem :: Eq a => a -> [a] -> Bool
-elem x [] = False
-elem x (y:ys) = if x == y then True else elem x ys  
 #+END_SRC
 
 * Typeclasses
 
 #+BEGIN_SRC haskell
-> elem '.' ``Why not.''
+
+elem :: Eq a => a -> [a] -> Bool
+elem x []     = False
+elem x (y:ys) = if x == y then True else elem x ys  
+
+> elem '.' "Why not."
 True
 > elem Red [Blue, Blue, Red, Green]
 True
@@ -762,6 +873,7 @@ True
 
 =Ord= is the class of things which can be ordered, i.e. one value can be
 "larger" than another.
+
 Note that for a type to be "orderable" it must already be in =Eq=.
 
 #+BEGIN_SRC haskell
@@ -782,11 +894,12 @@ Let's look at the =Ord= typeclass in a sorting algorithm.
 
 The algorithm works like this:
 
-1. Given an unsorted list, =xs=, pick a in it, =p=.
+1. Given an unsorted list, =xs=, pick a /pivot element/ in it, =p=.
 
-2. Move everything in =xs= which is to the left of =p=.
+2. Move everything in =xs= which is /less than or equal to p/ to the
+   left of =p=.
 
-3. Move everything in =xs= which is to the right of =p=.
+3. Move everything in =xs= which is /greater than p/ to the right of =p=.
 
 4. The elements to the left and right of =p= aren't sorted yet, but =p=
    is in its final position.
@@ -794,41 +907,21 @@ The algorithm works like this:
 5. Recursively apply these steps to the unsorted lists to the left and
    right of =p=.
 
-* More Haskell features
-
-** Typeclasses: Ord
+* Sorting with =Ord=
 
 #+BEGIN_SRC haskell 
 quicksort :: Ord a => [a] -> [a]
-quicksort [] = []
-quicksort (x:xs) = 
-  (quicksort lt) ++ [x] ++ (quicksort gt)
+quicksort []     = []
+quicksort (x:xs) = (quicksort lt) ++ [x] ++ (quicksort gt)
   where lt = filter (<= x) xs
-gt = filter (> x) xs
+        gt = filter (> x) xs
 #+END_SRC
 
 Read this carefully -- what are the contents of the lists =lt= and =gt=?
 Where do the recursive calls take place?
 
-* More Haskell features
-
-** Typeclasses: Ord
-
-#+BEGIN_SRC haskell 
-quicksort :: Ord a => [a] -> [a]
-quicksort [] = []
-quicksort (x:xs) = 
-  (quicksort lt) ++ [x] ++ (quicksort gt)
-  where lt = filter (<= x) xs
-gt = filter (> x) xs
-
-> quicksort ``Why not.''
-> `` .Whnoty''
-quicksort [Green, Blue, Red, Green, Red]
-> [Red, Red, Green, Green, Blue]
-#+END_SRC
-
 * Functional Programming
 
-Next week: Lists, tuple and some more handy types!
+Next week: Lists, tuples and some more handy types!
+
 Work though the Haskell exercises in the lab.

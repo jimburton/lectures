@@ -1,3 +1,5 @@
+* Introduction to Functional Programming
+
 * Parsing arithmetic
 
 ** and evaluating arithmetic expressions

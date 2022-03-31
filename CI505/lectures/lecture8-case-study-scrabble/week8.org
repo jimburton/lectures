@@ -1,3 +1,5 @@
+* Introduction to Functional Programming
+
 * Scrabble: Developing software in Haskell
 
 * Getting started

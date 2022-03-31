@@ -1,3 +1,5 @@
+* Introduction to Functional Programming
+
 * Scrabble
 
   [[../lecture8X-scrabble/images/scrabble.jpeg]]
