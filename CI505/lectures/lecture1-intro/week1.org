@@ -95,7 +95,7 @@ sum (x:xs) = x + sum xs
 (In this respect, Haskell is a *declarative* language, like SQL, as
 well as functional one.)
 
-* Paradigm $>$ syntax
+* Paradigm > syntax
 
 Learning another language in a paradigm you already know means mastering
 new *syntax* and *tools*, but won't change your practice as a programmer
