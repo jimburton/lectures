@@ -749,3 +749,287 @@ Our tests now need to involve ~IO~.
 * Exercises
 
 Have a go at the exercises at the end of chapter 2.
+
+* Validating moves
+
+We're now going to introduce a change that will have a big influence
+on the internal design of the library:
+
+*monadic error checking*
+
+It will allow us to thread the state of the game through a long and
+growing series of computations without having to worry at each stage
+about whether anything went wrong.
+
+(This code is the branch =chapter3=.)
+
+* Validating moves
+
+Now that we can place words onto the board, we want to check whether
+doing so is valid. The rules about word placement are as follows:
+
++ Words are at least two letters long.
++ Words must be actually on the board.
++ A word must be continuous and either horizontal or vertical.
++ The first word must cross the centre square, while subsequent words
+  must connect with an existing word.
++ The word and all additional words that it generates must be in the
+  dictionary.
+
+* Validating moves
+
+Let's start by checking that word is actually on the board.
+
+One approach would simply be to return =True= if each element of
+a =WordPut= is on the board:
+
+#+BEGIN_SRC haskell
+-- | Check that a WordPut is on the board.
+wordOnBoard :: WordPut -> Bool
+wordOnBoard w = all (onBoard . fst) w
+#+END_SRC
+
+* Validating moves
+
+There are lots of ways in which a move might be invalid.
+
+We'd like to be able to let the user know exactly what went wrong.
+
+If we carry on with validation checks that return true or false we
+will need lots of =if= statements that work out what to report back to
+the user.
+
+* Validating moves
+
+A common solution to writing a function that can fail is to use the
+type =Either Text a=.
+
+Values of this type are either =Left e=, where =e= is an error
+message, or =Right x= where =x= is any type.
+
+In the case of =straight=, if it returns any kind of =Right= value
+then we know things went well.
+
+So there's no need to return a =Bool=, we can just return =Left e= for
+an error or =Right ()= if things went well.
+
+* Validating moves
+
+#+BEGIN_SRC haskell
+-- in Scrabble.Board.Validation
+-- | Check that a WordPut is on the board.
+wordOnBoard :: WordPut -> Either Text ()
+wordOnBoard w = if all (onBoard . fst) w
+                 then Right ()
+                 else Left "Word not on board"
+#+END_SRC
+
+* Validating moves
+
+So, we write similar functions that validate other properties of a
+move. 
+
+Each of these function calls will return an =Either Text a=.
+
+We find ourselves doing /a lot/ of case statements and pattern matching
+on =Either= values.
+
+* Validating moves
+
+#+BEGIN_SRC haskell
+-- in Scrabble.Board.Validation
+
+validateMove :: Board   -- ^ The board
+             -> Player  -- ^ The player making the move
+             -> WordPut -- ^ The word to play
+             -> Bool    -- ^ Is first move
+             -> Either String Bool
+validateMove b p w fm = 
+    case wordOnBoard w of
+      Right _ -> case connects w b fm of
+                   Right _ -> case straight w of
+                                Right _ -> case firstMoveTouchesCentre w fm of
+                                             Right _ -> case lettersAvailable w p b of
+                                                          Right -> Right ()
+                                                          Left e -> Left e
+                                             Left e -> Left e
+                                Left e -> Left e
+                   Left e -> Left e
+      Left e -> Left e
+#+END_SRC
+
+* Validating moves
+ 
+The technical term for this kind of code is *nasty*.
+
+Such a deeply nested and indented structure is
+
++ hard to read,
++ hard to maintain and
++ hard to extend.
+
+
+Fortunately, what we can do here is to use a *monad* to encapsulate the
+checks for =Left= and =Right=.
+
+* Validating moves
+
+We make our =Either= type into a monad.
+
+The monad instance says what to do when we encounter a =Left=
+value, and then when we use the monad we can carry on as if everything
+is a =Right= value -- no more case statements.
+
+* Validating moves
+
+We create a new type for arbitrary "evaluations" in the game, called
+=Evaluator=. 
+
+#+BEGIN_SRC haskell
+-- in Scrabble.Types
+
+newtype Evaluator a = Ev (Either Text a)
+#+END_SRC
+
+* Validating moves
+
+This type wraps up an =Either Text a= type where the =Text= is an
+error message and the =a= value is whatever is being evaluated.
+
+For instance, =a= could be =()= in cases where moves are being checked
+for validity, or =Game= when a function either fails or returns an
+updated version of the game, or =Int= when a function either fails or
+calculates the score of a word.
+
+A value of the type =Evaluator Int= would be something like
+=Ev (Left "Something went wrong.")= or =Ev (Right 42)=.
+
+* Validating moves
+
+Now we need to make a monad instance for =Evaluator=.
+
+That requires us to first define the =Functor= and =Applicative=
+instances, since every monad is an applicative and every applicative
+is a functor.
+
+The spirit of these definitions is that if we are dealing with an
+=Ev (Left _)= value we want to **stop what we are doing and report the
+error**.
+
+When we are dealing with a =Ev (Right _)= value we can
+**keep going**.
+
+* Validating moves
+
+#+BEGIN_SRC haskell
+-- in Scrabble.Evaluator
+
+instance Functor Evaluator where
+  -- fmap :: (a -> b) -> f a -> f b 
+  fmap _ (Ev (Left e))  = Ev (Left e)      -- report the error
+  fmap f (Ev (Right g)) = Ev (Right (f g)) -- keep going
+#+END_SRC
+
+* Validating moves
+
+#+BEGIN_SRC haskell
+instance Applicative Evaluator where
+  -- pure :: a -> f a
+  pure k = Ev (Right k)
+  -- (<*>) :: f (a -> b) -> f a -> f b
+  Ev (Left  e)  <*>  _  =  Ev (Left e) -- report the error
+  Ev (Right f)  <*>  r  =  fmap f r    -- keep going
+#+END_SRC
+
+* Validating moves
+
+#+BEGIN_SRC haskell
+instance Monad Evaluator where
+    (Ev ev) >>= k =
+        case ev of
+          Left msg -> Ev (Left msg) -- report the error
+          Right v  -> k v           -- keep going
+    return   = pure
+    fail msg = Ev (Left (T.pack msg))
+#+END_SRC
+
+* Validating moves
+
+Now we need to rewrite all of the functions that returned =Either Text a=
+to return =Evaluator a=.
+
+The ones we have seen so far tested a boolean condition, =b=, and
+returned =Right ()= if =b= succeeded or =Left Text= if =b= failed.
+
+* Validating moves
+
+We can make an abstraction for this pattern.
+
+#+BEGIN_SRC haskell
+-- in Scrabble.Evaluator
+
+evalBool :: Bool -> Text -> Evaluator ()
+evalBool b e = if b then pure () else fail (T.unpack e)
+#+END_SRC
+
+* Validating moves
+
+Now we can write neat versions of all our validation functions:
+
+#+BEGIN_SRC haskell
+wordOnBoard :: WordPut -> Evaluator ()
+wordOnBoard w = all (onBoard . fst) w `evalBool` "Word not on board"
+#+END_SRC
+
+* Validating moves
+
+Monadic style allows us to remove all those case statments and write
+=validateMove= in a far nicer style.
+
+In effect, the case statements are all replaced by the one in the
+definition of the monad instance. If any of the validation functions
+encounters an error, the appropriate message is delivered.
+
+* Validating moves
+
+#+BEGIN_SRC haskell
+validateMove :: Board   -- ^ The board
+             -> Player  -- ^ The player making the move
+             -> WordPut -- ^ The word to play
+             -> Bool    -- ^ Is first move
+             -> Evaluator ()
+validateMove b p w fm =
+	   wordOnBoard w
+	   >> connects w b fm 
+	   >> straight w 
+	   >> firstMoveTouchesCentre w fm 
+	   >> lettersAvailable w p b
+#+END_SRC
+
+
+* Tests
+
+The tests from chapters one and two are refactored to work with the
+=Evaluator= type.
+
+We add a series of tests relating to validating words in
+=Test.Chapter3=.
+
+At this stage the tests start to look more complex.
+
+This is because when we call functions in the =Evaluator= monad we
+have to unwrap the result by pattern matching.
+
+*Demo: prop_wordOnBoard*
+
+* Exercises
+
++ Refactor the =straight= validator into two parts -- one called
+  =straight= that checks the tiles are placed horizontally or vertically, and
+  one called =continuous= that checks whether there are any gaps in the
+  something goes wrong.
++ Change the tests so that if a =Left= value is returned you make sure the right
+  error message is being received.
+ 
+
+
