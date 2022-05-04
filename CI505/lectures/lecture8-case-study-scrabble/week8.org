@@ -11,6 +11,7 @@
 #+ATTR_ORG: :width 800
 [[../common/images/scrabble.jpeg]] 
 #+END_center
+
 * Getting started
 
   This lecture and the ones that follow it are based on the repository
@@ -78,12 +79,15 @@ libraries, sophisticated data structures, functional design
 patterns, and means for structuring a Haskell project so that you
 can keep on top of it as it grows.
 
+* The next steps
+
 I won't say it will take you from being a beginner-level to an
 intermediate-level Haskell programmer;
 
 Haskell is a deep language and if /Intermediate/ is halfway between
-/Beginner/ and /Expert/ then that's a bit of a stretch.  But you won't
-be a beginner any more.
+/Beginner/ and /Expert/ then that's a bit of a stretch.
+
+But you won't be a beginner any more.
 
 * The repository
 
@@ -94,6 +98,8 @@ do this as independent learning.
 
 There is a branch in the repository for each chapter, named
 ~chapter1~, ~chapter2~, etc, up to ~chapter7~.
+
+* The repository
 
 As you read each chapter you should check out the corresponding
 branch and study the code.
@@ -142,8 +148,8 @@ We also need to account for some things that we can't see:
 * Letters and tiles
 
 #+BEGIN_center  
-#+ATTR_ORG: :width 800
-[[images/tile.jpg]]
+#+ATTR_ORG: :width 200
+[[./images/tile.jpg]]
 #+END_center
 
 A tile consists of a *letter* and a *value*. We could create a
@@ -179,7 +185,7 @@ We will need to know a number of things about letters:
 
 * Letters and tiles
 
-We will store this data in \emph{maps}, using the \texttt{Data.Map}
+We will store this data in /maps/, using the =Data.Map=
 API.
 
 We could use a simple list of pairs with the type ~[(Letter,Int)]~
@@ -199,9 +205,10 @@ normally imported with a qualified name.
 A Scrabble board is a 15x15 matrix of rows and columns, so a natural
 way to model it is as a two-dimensional array.
 
-The values stored in the array will be ~Maybe Tile~ values
-(i.e. either ~Nothing~ for an empty square, or something like ~Just
-(A,1)~ for a square with an 'A' tile on it).
+The values stored in the array will be ~Maybe Tile~ values.
+
+I.e. either ~Nothing~ for an empty square, or something like ~Just
+(A,1)~ for a square with an 'A' tile on it.
 
 * The board
 
@@ -229,7 +236,8 @@ These ~(r,c)~ pairs are going to be used a lot so we make a type for
 those too.
 
 #+BEGIN_SRC haskell
--- | A position on the board.  type Pos = (Int,Int) 
+  -- | A position on the board.
+  type Pos = (Int,Int) 
 #+END_SRC
 
 * Words
@@ -256,17 +264,19 @@ A word we want to place on the board is a list of pairs of ~Pos~ and
 We'll call this a ~WordPut~.
 
 #+BEGIN_SRC haskell
--- | A word placed on the board (tiles plus positions).  type WordPut
-= [(Pos, Tile)] 
+  -- | A word placed on the board (tiles plus positions).
+  type WordPut = [(Pos, Tile)] 
 #+END_SRC
 
 * Bonus squares
 
 Last up for the board are the /bonus squares/.
+
 These are either double or triple word bonuses, or double or triple
 letter bonuses.
 
 We make a datatype for bonuses and a map of their positions.
+
 We will put everything other than the type for bonuses in its own
 module to keep things tidy.
 
@@ -315,18 +325,18 @@ Here is an illustration of a trie storing the words /their/,
 /there/, /answer/, /any/ and /bye/.
 
      root
-    /  |  \
-    t  a   b
-    |  |   |
-    h  n   y
-    |  |\  |
-    e  s y e
-   /|  |
-  i r  w
-  | |  |
-  r e  e
-       |
-       r
+   /  |   \
+  t   a    b
+  |   |    |
+  h   n    y
+  |   | \  |
+  e   s  y e
+ /|   |
+i r   w
+| |   |
+r e   e
+      |
+      r
       
 * The dictionary
 
@@ -347,8 +357,9 @@ array.
 Then we can put a ~WordPut~ onto the board.
 
 The ~updateBoard~ function uses a fold to update the array with each
-element of the ~WordPut~ in turn. The ~(//)~ operator is used in
-~updateSquare~ to update the array.
+element of the ~WordPut~ in turn.
+
+The ~(//)~ operator is used in ~updateSquare~ to update the array.
 
 *Demo:* ~Scrabble.Board~
 
@@ -384,6 +395,7 @@ We need to think about what we want to be always true about the
 types and functions we have created.
 
 We use the ~QuickCheck~ library for property-based testing.
+
 This means that we specify some property that we want our functions
 to have and the library generates arbitrary input that checks
 whether the property holds.
@@ -409,627 +421,5 @@ We write generators that use the ~QuickCheck~ library to do that in
 
 * Exercises
 
-Have a go at the exercises at the end of Chapter 1!
-
-* Players and the game
-
-Now we can move on to think about /players/ and the /game/ itself.
-
-A player has a /name/, a /rack/, a /score/ and might be an /AI/
-player.
-
-A game will have two players, a /board/, a /StdGen/ for
-pseudo-randomness requirements, and several Boolean fields to keep
-track of the progress of the game.
-
-Most of this code is going into a new module, ~Scrabble.Game~.
-
-* Players and the game
-
-We introduce two record types, /Player/ and /Game/.
-
-They embody everything we need to know to manage the state of games.
-
-The types themselves are simple but we need to take a bit of a
-digression to explain the way we will working with them.
-
-*Demo:* ~Scrabble.Types~
-
-* ~Data.Text~
-
-The name of each player is stored as ~Data.Text~ rather than
-~String~.
-
-Wherever possible, when we need to store some text we will use the
-~Text~ datatype instead of ~String~.
-
-This is because ~String~, being a simple linked list, is very
-inefficient.
-
-Like ~Data.Map~, it is usual practice to import ~Data.Text~ with a
-qualified name, apart from the name of the type itself which is
-imported directly for convenience.
-
-* ~Data.Text~
-
-To make working with ~Text~ values easier, we turn on the
-~OverloadedStrings~ extension in our code.
-
-This means that any literal strings in our code are treated as
-~Text~.
-
-The extension is turned on in the ~cabal~ config file and by
-including a "language pragma" (an instruction to the compiler) at
-the top of any files that need it:
-
-#+BEGIN_SRC haskell
-{-# LANGUAGE OverloadedStrings #-} 
-#+END_SRC
-
-* Records, their clumsiness, and lenses
-
-As the ~Player~ and ~Game~ datatypes are records we can create them
-with named fields and update them by assigning those fields inside
-braces.
-
-The compiler creates an accessor function for each field with the same
-name as the field.
-
-#+BEGIN_SRC haskell
-> let p = Player { _name = "Bob", _rack = [A, B, C, D, E, F, G],
-> _score = 0} _name p "Bob" p { _name = "Alice", _score = 42 }
-> Player { _name = "Alice" , _rack = [ A , B , C , D , E , F , G ] ,
-> _score = 42 } 
-#+END_SRC
-
-* Records, their clumsiness, and lenses
-
-Our main record will be ~Game~ and it has two ~Player~ values nested
-within it.
-
-As soon as we need to update values in this structure we encounter a
-well-known problem -- the syntax for records makes this awkward.
-
-Let's say we have a game called =g= and we want to increase
-the score of Player 1 by 10:
-
-#+BEGIN_SRC haskell
-> let g' = g { _player1 = ( _player1 g) { _score = _score (
-_player1 g) + 10 } } 
-#+END_SRC
-
-* Records, their clumsiness, and lenses
-
-Oof!
-
-Haskell is meant to be elegant...considering that in an OO language
-we could probably do something like ~p.player1.score += 10~, this is
-very cumbersome.
-
-This is the problem that /lenses/ overcome.
-
-Lenses are /first class getters and setters/ for records.
-
-They can be composed, so they allow us to access and modify values
-that are deeply nested in data, like the ~_score~ field above.
-
-* Lenses
-
-This isn't the place for an in-depth lens tutorial, and I'm hoping
-to tell you just enough about them to understand the way they're
-used in this project, which is very basic.
-
-It's highly recommended that you do read such a tutorial eventually,
-such as the standard one:
-
-http://hackage.haskell.org/package/lens-tutorial-1.0.4/docs/Control-Lens-Tutorial.html
-
-* Lenses
-
-Each lens comes with two main functions: ~view~, which gives the
-value of the field, and ~over~, which modifies its value.
-
-Rather than using these functions by name we most often use one of
-the lens operators.
-
-If we define lenses for ~Player~ and ~Game~ and use one of the
-standard lens librarys, we can rewrite the the code above like this:
-
-#+BEGIN_SRC haskell
-> let g' = g & player1 . score %~ (+10) g' ^. (player1 . score) 52
-> 
-#+END_SRC
-
-* Lenses
-
-As we can see from the differences in their names, \texttt{score}
-and \texttt{player1} are not the accessor functions we saw before.
-
-They are lenses.
-
-Given a record, ~p~, with a field, ~score~, we can get the value of
-~score~ with
-
-#+BEGIN_SRC haskell
-p ^. score 
-#+END_SRC
-
-* Lenses
-
-We can set =score= to a new value, ~x~, with
-
-#+BEGIN_SRC haskell
-p & score .~ x 
-#+END_SRC
-
-and update its value by applying a function to it:
-
-#+BEGIN_SRC haskell
-p & score %~ foo 
-#+END_SRC
-
-* Lenses
-
-The ~(&)~ operator is like ~($)~ but it takes its arguments in
-reverse order, so our original lens function,
-
-#+BEGIN_SRC haskell
-g' = g & player1 . score %~ (+10) 
-#+END_SRC
-
-is the same as writing
-
-#+BEGIN_SRC haskell
-g' = (player1 . score %~ (+10)) g 
-#+END_SRC
-
-* Lenses
-
-#+BEGIN_SRC haskell
-(player1 . score %~ (+10)) g 
-#+END_SRC
-
-In the above ~g~ is applied to a function which is a lens made up of
-~player1~ and ~score~ composed with the usual composition operator,
-~(.)~.
-
-Then comes the =(%~)= operator, which takes a lens as its
-first argument and a function as its second, and supplies the value
-from the lens to the function.
-
-Haskell is still a purely functional language of course, so no change
-is made to ~g~, but a new ~Game~ record is produced which we assign to
-=g'=.
-
-* Lenses
-
-Lenses can be used to access the value of the field or to "change"
-it.
-
-Which purpose the lens serves depends on the context, which is set
-by the lens operators involved.
-
-For example, ~player1~ acts like a getter in
-
-#+BEGIN_SRC haskell
-g ^. player1 
-#+END_SRC
-
-It acts like a setter in
-
-#+BEGIN_SRC haskell
-g & player1 .~ p 
-#+END_SRC
-
-* Lenses
-
-The ~(&)~ operator has a very simple type,
-
-#+BEGIN_SRC haskell
-(&) :: a -> (a -> b) -> b 
-#+END_SRC
-
-but is incredibly useful.
-
-* Lenses
-
-We use it to supply the object at the top of the chain (~g~) in a
-readable left-to-right way.
-
-Because a record update returns a new record we can also use it to
-chain updates.
-
-#+BEGIN_SRC haskell
-g & player1 . score .~ s1 & player2 . score .~ s2 & gameOver .~
-True 
-#+END_SRC
-
-* Lenses
-
-To write a lens like =name= ourselves we could have written a
-getter and a setter then used the built-in =lens= function to
-combine them.
-
-#+BEGIN_SRC haskell
-getName :: Player -> Text getName (Player { _name = n }) = n
-setName :: Player -> Text -> Player setName p n = p { _name = n }
-name :: Lens' Player Text name = lens getName setName 
-#+END_SRC
-
-* Lenses
-
-But doing this for every field is a lot of boilerplate code --
-typing with no real thought required.
-
-As we'll see we can get tools to do for us.
-
-*Demo:* ~Scrabble.Types~
-
-* Lens operators
-
-We are going to stick to a small number of the most basic lens
-operators:
-
-+----------------+-------+---------------------------------------------------+
-| Operator       | Name  | Example                                           |
-+----------------+-------+---------------------------------------------------+
-| (^.)           | view  | g ^. word: gets word in g.                        |
-+----------------+-------+---------------------------------------------------+
-| (.~)           | set   | g & word .~ "HELLO": sets the word of g to        |
-|                |       | "HELLO".                                          |
-+----------------+-------+---------------------------------------------------+
-| (%~)           | over  | g & word %~ T.toUpper: applies T.toUpper to       |
-|                |       | the word.                                         |
-+----------------+-------+---------------------------------------------------+
-| (&)            | apply | Reverse application, used for supplying the       |
-|                |       | first record to a composed lens, and for chaining |
-|                |       | operations.                                       |
-+----------------+-------+---------------------------------------------------+
-
-* Creating a game
-
-To start a fresh game we need to create a full bag then two players,
-each with a rack that has been filled with tiles taken at "random"
-from the bag.
-
-Then the two players and the depleted bag are added to the game
-state.
-
-*Demo:* ~Scrabble.Bag~
-
-* Randomness
-
-For the randomness, we are going to use a pseudo-random number
-generator (PRNGs).
-
-These are completely deterministic (i.e. non-random) data
-structures.
-
-They are created using a \emph{seed}, and can produce a stream of
-values whose sequence is hard enough for humans to predict that it
-appears to be truly random.
-
-But there's nothing magical happening -- PRNGs created with the same
-seed return the same stream of values, and ones in the same state
-(i.e. in the same position in its stream of values) returns the same
-value next.
-
-* Randomness
-
-Every time we use the PRNG it returns the latest value and an
-updated version of itself, primed to return the next value.
-
-So our function that fills a rack needs to take a rack to be filled,
-a bag to fill the rack from and a PRNG as parameters, and return a
-triple of the filled rack, the depleted bag and, crucially, the
-updated PRNG.
-
-The type for PRNGs that we'll be using is ~StdGen~.
-
-*Demo:* ~Scrabble.Bag~ and ~fillRack~.
-
-* Starting a game
-
-When we start a game we need to begin with a new ~StdGen~.
-We can get one created with a seed based on the system time using
-~getStdGen~ then keep updating it throughout the game.
-
-Because we don't want everything in our library to be polluted with
-~IO~ we leave the call to ~getStdGen~ to clients and presume they
-can supply one to the ~newGame~ function.
-
-*Demo:* ~Scrabble.Game~ and ~newGame~.
-
-* Testing
-
-Our tests now need to involve ~IO~.
-
-*Demo:* ~Test.Chapter2~.
-
-* Exercises
-
-Have a go at the exercises at the end of chapter 2.
-
-* Validating moves
-
-We're now going to introduce a change that will have a big influence
-on the internal design of the library:
-
-*monadic error checking*
-
-It will allow us to thread the state of the game through a long and
-growing series of computations without having to worry at each stage
-about whether anything went wrong.
-
-(This code is the branch =chapter3=.)
-
-* Validating moves
-
-Now that we can place words onto the board, we want to check whether
-doing so is valid. The rules about word placement are as follows:
-
-+ Words are at least two letters long.
-+ Words must be actually on the board.
-+ A word must be continuous and either horizontal or vertical.
-+ The first word must cross the centre square, while subsequent words
-  must connect with an existing word.
-+ The word and all additional words that it generates must be in the
-  dictionary.
-
-* Validating moves
-
-Let's start by checking that word is actually on the board.
-
-One approach would simply be to return =True= if each element of
-a =WordPut= is on the board:
-
-#+BEGIN_SRC haskell
--- | Check that a WordPut is on the board.
-wordOnBoard :: WordPut -> Bool
-wordOnBoard w = all (onBoard . fst) w
-#+END_SRC
-
-* Validating moves
-
-There are lots of ways in which a move might be invalid.
-
-We'd like to be able to let the user know exactly what went wrong.
-
-If we carry on with validation checks that return true or false we
-will need lots of =if= statements that work out what to report back to
-the user.
-
-* Validating moves
-
-A common solution to writing a function that can fail is to use the
-type =Either Text a=.
-
-Values of this type are either =Left e=, where =e= is an error
-message, or =Right x= where =x= is any type.
-
-In the case of =straight=, if it returns any kind of =Right= value
-then we know things went well.
-
-So there's no need to return a =Bool=, we can just return =Left e= for
-an error or =Right ()= if things went well.
-
-* Validating moves
-
-#+BEGIN_SRC haskell
--- in Scrabble.Board.Validation
--- | Check that a WordPut is on the board.
-wordOnBoard :: WordPut -> Either Text ()
-wordOnBoard w = if all (onBoard . fst) w
-                 then Right ()
-                 else Left "Word not on board"
-#+END_SRC
-
-* Validating moves
-
-So, we write similar functions that validate other properties of a
-move. 
-
-Each of these function calls will return an =Either Text a=.
-
-We find ourselves doing /a lot/ of case statements and pattern matching
-on =Either= values.
-
-* Validating moves
-
-#+BEGIN_SRC haskell
--- in Scrabble.Board.Validation
-
-validateMove :: Board   -- ^ The board
-             -> Player  -- ^ The player making the move
-             -> WordPut -- ^ The word to play
-             -> Bool    -- ^ Is first move
-             -> Either String Bool
-validateMove b p w fm = 
-    case wordOnBoard w of
-      Right _ -> case connects w b fm of
-                   Right _ -> case straight w of
-                                Right _ -> case firstMoveTouchesCentre w fm of
-                                             Right _ -> case lettersAvailable w p b of
-                                                          Right -> Right ()
-                                                          Left e -> Left e
-                                             Left e -> Left e
-                                Left e -> Left e
-                   Left e -> Left e
-      Left e -> Left e
-#+END_SRC
-
-* Validating moves
- 
-The technical term for this kind of code is *nasty*.
-
-Such a deeply nested and indented structure is
-
-+ hard to read,
-+ hard to maintain and
-+ hard to extend.
-
-
-Fortunately, what we can do here is to use a *monad* to encapsulate the
-checks for =Left= and =Right=.
-
-* Validating moves
-
-We make our =Either= type into a monad.
-
-The monad instance says what to do when we encounter a =Left=
-value, and then when we use the monad we can carry on as if everything
-is a =Right= value -- no more case statements.
-
-* Validating moves
-
-We create a new type for arbitrary "evaluations" in the game, called
-=Evaluator=. 
-
-#+BEGIN_SRC haskell
--- in Scrabble.Types
-
-newtype Evaluator a = Ev (Either Text a)
-#+END_SRC
-
-* Validating moves
-
-This type wraps up an =Either Text a= type where the =Text= is an
-error message and the =a= value is whatever is being evaluated.
-
-For instance, =a= could be =()= in cases where moves are being checked
-for validity, or =Game= when a function either fails or returns an
-updated version of the game, or =Int= when a function either fails or
-calculates the score of a word.
-
-A value of the type =Evaluator Int= would be something like
-=Ev (Left "Something went wrong.")= or =Ev (Right 42)=.
-
-* Validating moves
-
-Now we need to make a monad instance for =Evaluator=.
-
-That requires us to first define the =Functor= and =Applicative=
-instances, since every monad is an applicative and every applicative
-is a functor.
-
-The spirit of these definitions is that if we are dealing with an
-=Ev (Left _)= value we want to **stop what we are doing and report the
-error**.
-
-When we are dealing with a =Ev (Right _)= value we can
-**keep going**.
-
-* Validating moves
-
-#+BEGIN_SRC haskell
--- in Scrabble.Evaluator
-
-instance Functor Evaluator where
-  -- fmap :: (a -> b) -> f a -> f b 
-  fmap _ (Ev (Left e))  = Ev (Left e)      -- report the error
-  fmap f (Ev (Right g)) = Ev (Right (f g)) -- keep going
-#+END_SRC
-
-* Validating moves
-
-#+BEGIN_SRC haskell
-instance Applicative Evaluator where
-  -- pure :: a -> f a
-  pure k = Ev (Right k)
-  -- (<*>) :: f (a -> b) -> f a -> f b
-  Ev (Left  e)  <*>  _  =  Ev (Left e) -- report the error
-  Ev (Right f)  <*>  r  =  fmap f r    -- keep going
-#+END_SRC
-
-* Validating moves
-
-#+BEGIN_SRC haskell
-instance Monad Evaluator where
-    (Ev ev) >>= k =
-        case ev of
-          Left msg -> Ev (Left msg) -- report the error
-          Right v  -> k v           -- keep going
-    return   = pure
-    fail msg = Ev (Left (T.pack msg))
-#+END_SRC
-
-* Validating moves
-
-Now we need to rewrite all of the functions that returned =Either Text a=
-to return =Evaluator a=.
-
-The ones we have seen so far tested a boolean condition, =b=, and
-returned =Right ()= if =b= succeeded or =Left Text= if =b= failed.
-
-* Validating moves
-
-We can make an abstraction for this pattern.
-
-#+BEGIN_SRC haskell
--- in Scrabble.Evaluator
-
-evalBool :: Bool -> Text -> Evaluator ()
-evalBool b e = if b then pure () else fail (T.unpack e)
-#+END_SRC
-
-* Validating moves
-
-Now we can write neat versions of all our validation functions:
-
-#+BEGIN_SRC haskell
-wordOnBoard :: WordPut -> Evaluator ()
-wordOnBoard w = all (onBoard . fst) w `evalBool` "Word not on board"
-#+END_SRC
-
-* Validating moves
-
-Monadic style allows us to remove all those case statments and write
-=validateMove= in a far nicer style.
-
-In effect, the case statements are all replaced by the one in the
-definition of the monad instance. If any of the validation functions
-encounters an error, the appropriate message is delivered.
-
-* Validating moves
-
-#+BEGIN_SRC haskell
-validateMove :: Board   -- ^ The board
-             -> Player  -- ^ The player making the move
-             -> WordPut -- ^ The word to play
-             -> Bool    -- ^ Is first move
-             -> Evaluator ()
-validateMove b p w fm =
-	   wordOnBoard w
-	   >> connects w b fm 
-	   >> straight w 
-	   >> firstMoveTouchesCentre w fm 
-	   >> lettersAvailable w p b
-#+END_SRC
-
-
-* Tests
-
-The tests from chapters one and two are refactored to work with the
-=Evaluator= type.
-
-We add a series of tests relating to validating words in
-=Test.Chapter3=.
-
-At this stage the tests start to look more complex.
-
-This is because when we call functions in the =Evaluator= monad we
-have to unwrap the result by pattern matching.
-
-*Demo: prop_wordOnBoard*
-
-* Exercises
-
-+ Refactor the =straight= validator into two parts -- one called
-  =straight= that checks the tiles are placed horizontally or vertically, and
-  one called =continuous= that checks whether there are any gaps in the
-  something goes wrong.
-+ Change the tests so that if a =Left= value is returned you make sure the right
-  error message is being received.
- 
-
+Have a go at the exercises at the end of Chapter 1.
 

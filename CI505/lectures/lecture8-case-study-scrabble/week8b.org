@@ -1,0 +1,339 @@
+* Introduction to Functional Programming
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[../common/images/logo7000.png]] 
+#+END_center
+
+* Scrabble: Developing software in Haskell
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[../common/images/scrabble.jpeg]] 
+#+END_center
+
+* Players and the game
+
+Now we can move on to think about /players/ and the /game/ itself.
+
+A player has a /name/, a /rack/, a /score/ and might be an /AI/
+player.
+
+A game will have two players, a /board/, a /StdGen/ for
+pseudo-randomness requirements, and several Boolean fields to keep
+track of the progress of the game.
+
+Most of this code is going into a new module, ~Scrabble.Game~.
+
+See the branch =chapter2=.
+
+* Players and the game
+
+We introduce two record types, /Player/ and /Game/.
+
+They embody everything we need to know to manage the state of games.
+
+The types themselves are simple but we need to take a bit of a
+digression to explain the way we will working with them.
+
+*Demo:* ~Scrabble.Types~
+
+* ~Data.Text~
+
+The name of each player is stored as ~Data.Text~ rather than
+~String~.
+
+Wherever possible, when we need to store some text we will use the
+~Text~ datatype instead of ~String~.
+
+This is because ~String~, being a simple linked list, is very
+inefficient.
+
+Like ~Data.Map~, it is usual practice to import ~Data.Text~ with a
+qualified name, apart from the name of the type itself which is
+imported directly for convenience.
+
+* ~Data.Text~
+
+To make working with ~Text~ values easier, we turn on the
+~OverloadedStrings~ extension in our code.
+
+This means that any literal strings in our code are treated as
+~Text~.
+
+The extension is turned on in the ~cabal~ config file and by
+including a "language pragma" (an instruction to the compiler) at
+the top of any files that need it:
+
+#+BEGIN_SRC haskell
+{-# LANGUAGE OverloadedStrings #-} 
+#+END_SRC
+
+* Records, their clumsiness, and lenses
+
+As the ~Player~ and ~Game~ datatypes are records we can create them
+with named fields and update them by assigning those fields inside
+braces.
+
+The compiler creates an accessor function for each field with the same
+name as the field.
+
+#+BEGIN_SRC haskell
+> let p = Player { _name = "Bob", _rack = [A, B, C, D, E, F, G],
+ _score = 0}
+> _name p
+"Bob"
+> p { _name = "Alice", _score = 42 }
+Player { _name = "Alice" , _rack = [ A , B , C , D , E , F , G ] ,
+ _score = 42 } 
+#+END_SRC
+
+* Records, their clumsiness, and lenses
+
+Our main record will be ~Game~ and it has two ~Player~ values nested
+within it.
+
+As soon as we need to update values in this structure we encounter a
+well-known problem -- the syntax for records makes this awkward.
+
+Let's say we have a game called =g= and we want to increase
+the score of Player 1 by 10:
+
+#+BEGIN_SRC haskell
+> let g' = g { _player1 = ( _player1 g) { _score = _score (
+_player1 g) + 10 } } 
+#+END_SRC
+
+* Records, their clumsiness, and lenses
+
+Oof!
+
+Haskell is meant to be elegant...considering that in an OO language
+we could probably do something like ~g.player1.score += 10~, this is
+very cumbersome.
+
+This is the problem that /lenses/ overcome.
+
+Lenses are /first class getters and setters/ for records.
+
+They can be composed, so they allow us to access and modify values
+that are deeply nested in data, like the ~_score~ field above.
+
+* Lenses
+
+This isn't the place for an in-depth lens tutorial, and I'm hoping
+to tell you just enough about them to understand the way they're
+used in this project, which is very basic.
+
+It's highly recommended that you do read such a tutorial eventually,
+such as the standard one:
+
+http://hackage.haskell.org/package/lens-tutorial-1.0.4/docs/Control-Lens-Tutorial.html
+
+* Lenses
+
+Each lens comes with two main functions: ~view~, which gives the
+value of the field, and ~over~, which modifies its value.
+
+Rather than using these functions by name we most often use one of
+the lens operators.
+
+If we define lenses for ~Player~ and ~Game~ and use one of the
+standard lens librarys, we can rewrite the the code above like this:
+
+#+BEGIN_SRC haskell
+  > let g' = g & player1 . score %~ (+10)
+  > g' ^. (player1 . score) 
+  > 52
+#+END_SRC
+
+* Lenses
+
+As we can see from the differences in their names, =score=
+and =player1= are not the accessor functions we saw before.
+
+They are lenses.
+
+Given a record, ~p~, with a field, ~score~, we can get the value of
+~score~ with
+
+#+BEGIN_SRC haskell
+p ^. score 
+#+END_SRC
+
+* Lenses
+
+We can set =score= to a new value, ~x~, with
+
+#+BEGIN_SRC haskell
+p & score .~ x 
+#+END_SRC
+
+and update its value by applying a function to it:
+
+#+BEGIN_SRC haskell
+p & score %~ foo 
+#+END_SRC
+
+* Lenses
+
+The ~(&)~ operator is like ~($)~ but it takes its arguments in
+reverse order, so our original lens function,
+
+#+BEGIN_SRC haskell
+g' = g & player1 . score %~ (+10) 
+#+END_SRC
+
+is the same as writing
+
+#+BEGIN_SRC haskell
+g' = (player1 . score %~ (+10)) g 
+#+END_SRC
+
+* Lenses
+
+#+BEGIN_SRC haskell
+(player1 . score %~ (+10)) g 
+#+END_SRC
+
+In the above ~g~ is applied to a function which is a lens made up of
+~player1~ and ~score~ composed with the usual composition operator,
+~(.)~.
+
+Then comes the =(%~)= operator, which takes a lens as its
+first argument and a function as its second, and supplies the value
+from the lens to the function.
+
+Haskell is still a purely functional language of course, so no change
+is made to ~g~, but a new ~Game~ record is produced which we assign to
+=g'=.
+
+* Lenses
+
+Lenses can be used to access the value of the field or to "change"
+it.
+
+Which purpose the lens serves depends on the context, which is set
+by the lens operators involved.
+
+For example, ~player1~ acts like a getter in
+
+#+BEGIN_SRC haskell
+g ^. player1 
+#+END_SRC
+
+It acts like a setter in
+
+#+BEGIN_SRC haskell
+g & player1 .~ p 
+#+END_SRC
+
+* Lenses
+
+The ~(&)~ operator has a very simple type,
+
+#+BEGIN_SRC haskell
+(&) :: a -> (a -> b) -> b 
+#+END_SRC
+
+but is incredibly useful.
+
+* Lenses
+
+We use it to supply the object at the top of the chain (~g~) in a
+readable left-to-right way.
+
+Because a record update returns a new record we can also use it to
+chain updates.
+
+#+BEGIN_SRC haskell
+g & player1 . score .~ s1
+  & player2 . score .~ s2
+  & gameOver .~ True 
+#+END_SRC
+
+* Lens operators
+
+We are going to stick to a small number of the most basic lens
+operators:
+
++----------------+-------+---------------------------------------------------+
+| Operator       | Name  | Example                                           |
++----------------+-------+---------------------------------------------------+
+| (^.)           | view  | g ^. word: gets word in g.                        |
++----------------+-------+---------------------------------------------------+
+| (.~)           | set   | g & word .~ "HELLO": sets the word of g to        |
+|                |       | "HELLO".                                          |
++----------------+-------+---------------------------------------------------+
+| (%~)           | over  | g & word %~ T.toUpper: applies T.toUpper to       |
+|                |       | the word.                                         |
++----------------+-------+---------------------------------------------------+
+| (&)            | apply | Reverse application, used for supplying the       |
+|                |       | first record to a composed lens, and for chaining |
+|                |       | operations.                                       |
++----------------+-------+---------------------------------------------------+
+
+
+* Randomness
+
+For the randomness, we are going to use a pseudo-random number
+generator (PRNGs).
+
+These are completely deterministic (i.e. non-random) data
+structures.
+
+They are created using a /seed/, and can produce a stream of
+values whose sequence is hard enough for humans to predict that it
+appears to be truly random.
+
+But there's nothing magical happening -- PRNGs created with the same
+seed return the same stream of values, and ones in the same state
+(i.e. in the same position in its stream of values) returns the same
+value next.
+
+* Randomness
+
+Every time we use the PRNG it returns the latest value and an
+updated version of itself, primed to return the next value.
+
+So our function that fills a rack needs to take a rack to be filled,
+a bag to fill the rack from and a PRNG as parameters, and return a
+triple of the filled rack, the depleted bag and, crucially, the
+updated PRNG.
+
+The type for PRNGs that we'll be using is ~StdGen~.
+
+* Creating a game
+
+To start a fresh game we need to create a full bag then two players,
+each with a rack that has been filled with tiles taken at "random"
+from the bag.
+
+Then the two players and the depleted bag are added to the game
+state.
+
+*Demo:* ~Scrabble.Bag~
+
+* Starting a game
+
+When we start a game we need to begin with a new ~StdGen~.
+
+We can get one created with a seed based on the system time using
+~getStdGen~ then keep updating it throughout the game.
+
+Because we don't want everything in our library to be polluted with
+~IO~ we leave the call to ~getStdGen~ to clients and presume they
+can supply one to the ~newGame~ function.
+
+*Demo:* ~Scrabble.Game~ and ~newGame~.
+
+* Testing
+
+Our tests now need to involve ~IO~.
+
+*Demo:* ~Test.Chapter2~.
+
+* Exercises
+
+Have a go at the exercises at the end of chapter 2.
+
