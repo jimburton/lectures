@@ -1,0 +1,1076 @@
+* CI583: Data Structures and Operating Systems
+
+#+BEGIN_center
+#+ATTR_ORG: :width 600
+[[./../images/partition.png]]
+#+END_center
+
+* Simple sorting algorithms
+
+The next algorithms we consider are three of the simplest algorithms for
+data.
+
+We will see that they are all quite *inefficient* and would not be our
+first choice if we needed to sort large amounts of data.
+
+* Simple sorting algorithms
+
+However, they are a good place to start, mainly because they are simple
+to describe and implement.
+
+What's more, they are *good enough* in many circumstances and use very
+little additional memory as they run (i.e.  additional to the data
+being sorted).
+
+One of them, /insertion sort/, is often used as part of a more
+sophisticated algorithm (/quicksort/) we will encounter in a later
+lecture.
+
+* Simple sorting algorithms
+
+We saw in Week One that we can find an element in a sorted dataset very
+efficiently, and the most common reason to keep a dataset sorted is for
+efficient search and retrieval.
+
+Relational databases manage to do just this.
+
+An index is a sorted structure containing column data that often needs
+to be searched, such as a primary key.
+
+It takes longer to insert to a table with indexes on it, but searching
+is /much/ faster.
+
+* Simple sorting algorithms
+
+After this lecture, it will benefit you to experiment with the applets
+on studentcentral that visualise the various algorithms.
+
+Do this carefully and with the slides handy at the same time.
+
+* Bubble sort
+
+*Bubble sort* is the simplest, easiest to describe, and just about the
+least efficient sorting algorithm there is.
+
+There are several variations of bubble sort, and we present a simple
+version that could be optimised in various ways.
+
+* Bubble sort
+
+The general idea is for larger values to move ("bubble") up through the
+collection until everything is in the right place.
+
+Each element, e, is compared with its neighbour, e'. If e>e',
+then their places are swapped.
+
+We continue in this way until we reach the end of the collection,
+which is the end of the /first pass/.
+
+* Bubble sort
+
+After the first pass, the last element in the collection is the
+largest one, and that position is sorted.
+
+On the next pass, we only need to consider n-1 values, where n is
+the size of the input, and on the one after that, n-2, and so on.
+
+If, on any given pass, there are no swaps then the data is sorted and
+we stop.
+
+* Bubble sort
+
+One pass of bubble sort:
+
+* Bubble sort
+
+#+BEGIN_SRC
+-- Sort the contents of the array a
+PROCEDURE bubbleSort( a : array of items )
+  loop <- length(a)
+  i <- 0
+  WHILE i < loop-1
+    swapped <- false
+    j <- 0		
+    WHILE j < loop-1
+      IF list[j] > list[j+1]
+        -- swap them
+        swap( list[j], list[j+1] )		 
+        swapped = true
+      ENDIF
+      j <- j+1
+    ENDWHILE
+    IF(not swapped)
+      BREAK
+    ENDIF
+    i <- i+1
+  ENDWHILE
+  RETURN a   
+END
+#+END_SRC
+
+* Complexity of bubble sort
+
+On the first pass, bubble sort carries out n-1 comparisons.
+
+In the best case, there are no swaps and the algorithm terminates.
+
+We will concentrate on the /worst/ case.
+
+* Complexity of bubble sort
+
+The worst case is when the input was in reverse order:
+
+at the beginning of the first pass, the largest element is in first
+place and is swapped all the way to the end.
+
+At the beginning of the second pass, the second largest element is in
+first place, etc.
+
+* Complexity of bubble sort
+
+So, the first pass does n-1 comparisons, the second n-2, and so
+on.
+
+Let W(n) be the worst case for n elements.
+
+Then
+
+W(n) = ∑ i (from i=1 to i=n-1)
+     = (n-1)n/2 
+     = n^2 - n/2 
+     ~  (1/2)n^2 
+     = O(n^2)
+
+* Complexity
+
+As a rule of thumb, note that that any bubble sort implementation will
+have /an inner loop nested within an outer one/, or some equivalent
+structure.
+
+When we see this pattern we can take it to mean O(n^2), as we are
+carrying out an O(n) task n times.
+
+The simplest sorting algorithms are all in this order.
+
+* Selection sort
+
+The idea behind *selection sort* is that we look through the whole
+collection for the element, then put that in first place.
+
+On the next pass, we do the same thing but start with the second
+element, and so on.
+
+Selection sort requires the same number of comparisons as bubble sort,
+but the number of swaps required is O(n).
+
+In bubble sort the same element may be moved many times, but in
+selection sort each element is likely to be moved much less often.
+
+* Selection sort
+
+One pass of selection sort:
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/ssort1.svg]]
+#+END_center
+
+* Selection sort
+
+One pass of selection sort:
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/ssort2.svg]]
+#+END_center
+
+
+* Selection sort
+
+One pass of selection sort:
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/ssort3.svg]]
+#+END_center
+
+* Selection sort
+
+One pass of selection sort:
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/ssort4.svg]]
+#+END_center
+
+* Selection sort
+
+One pass of selection sort:
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/ssort5.svg]]
+#+END_center
+
+* Selection sort
+
+One pass of selection sort:
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/ssort6.svg]]
+#+END_center
+
+* Selection sort
+
+One pass of selection sort:
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/ssort7.svg]]
+#+END_center
+
+* Selection sort
+
+One pass of selection sort:
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/ssort8.svg]]
+#+END_center
+
+* Selection sort
+
+One pass of selection sort:
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/ssort9.svg]]
+#+END_center
+
+* Selection sort
+
+One pass of selection sort:
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/ssort10.svg]]
+#+END_center
+
+* Selection sort
+
+#+BEGIN_SRC
+-- Sort the contents of the array a
+PROCEDURE selectionSort(a : array of items) 
+  len <- length(a)
+  WHILE i < len-1
+    min <- i
+    j <- i+1
+    WHILE j < len-1
+      IF a[j] < a[min]
+        min <- j
+      ENDIF
+    ENDWHILE
+    IF min != i 
+      swap ( a[min], a[i])
+    ENDIF
+  ENDWHILE
+  RETURN a
+END
+#+END_SRC
+
+
+*  Complexity of selection sort
+
+In the worst case, we can see that selection sort is O(n^2), by the
+same reasoning as for bubble sort.
+
+However, it was easy to optimise the case for bubble sort by detecting
+that the input was already sorted and ending after the first pass.
+
+Since we don't necessarily compare every element to each other in
+selection sort, this isn't so easy.
+
+Still, making fewer swaps gives selection sort better average
+performance.
+
+* Insertion sort
+
+Most of the time, has the best performance of the simple sorts we're
+looking at today. It is still O(n^2) but about /twice as fast/ as bubble
+sort.
+
+The idea is to start by sorting the first two elements then, as we move
+along the collection, to each element in the right place in the sorted
+part of the collection.
+
+* Insertion sort
+
+So, part of the input is always sorted and we keep inserting items into
+that part.
+
+The /sorted part grows/ and the /unsorted part shrinks/ until there is
+nothing left to do.
+
+We need to keep track of which part of the collection is sorted, and we
+need to store temporary values as we make room for an element to be
+moved.
+
+* Insertion sort
+
+Part of a run of insertion sort:
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/isort1.svg]]
+#+END_center
+
+* Insertion sort
+
+Part of a run of insertion sort:
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/isort2.svg]]
+#+END_center
+
+* Insertion sort
+
+Part of a run of insertion sort:
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/isort3.svg]]
+#+END_center
+
+* Insertion sort
+
+Part of a run of insertion sort:
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/isort4.svg]]
+#+END_center
+
+* Insertion sort
+
+Part of a run of insertion sort:
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/isort5.svg]]
+#+END_center
+
+* Insertion sort
+
+Part of a run of insertion sort:
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/isort6.svg]]
+#+END_center
+
+* Insertion sort
+
+Part of a run of insertion sort:
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/isort7.svg]]
+#+END_center
+
+* Insertion sort
+
+Part of a run of insertion sort:
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/isort8.svg]]
+#+END_center
+
+* Insertion sort
+
+Part of a run of insertion sort:
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/isort9.svg]]
+#+END_center
+
+* Insertion sort
+
+#+BEGIN_SRC
+PROCEDURE insertionSort( a : array of items )
+  slot <- 0
+  len <- length(a)
+  i <- 0
+  WHILE i < len
+    val <- a[i]
+    slot <- i
+    WHILE slot > 0 AND a[slot-1] > val
+      a[slot] <- a[slot-1]
+      slot <- slot-1
+    ENDWHILE
+    a[slot] <- val
+  ENDWHILE
+  RETURN a
+END 
+#+END_SRC
+
+* Complexity of insertion sort
+
+The previous two sorts the size of the problem at each pass. In this
+case we it.
+
+On the first pass, we make one comparison, on the second, a
+maximum of two, and so on.
+
+1 + 2 + ... + n-1 = n(n-1)/2
+
+So the worst case is the same: O(n^2).
+
+However, insertion sort performs much better when the data is sorted
+or "almost" sorted.
+
+* Radix sort
+
+Our next sorting algorithm works completely differently to any of the
+ones we've seen so far, and does it without actually comparing values to
+each other.
+
+What's more, it has *O(n)* time complexity!
+
+This is .
+
+For each element in the input, radix sort looks at one digit at a time
+starting with the least significant.
+
+Elements with the same value for that digit are "thrown" into the same
+.
+
+* Radix sort
+
+Consider sorting the following data:
+
+[ 310, 213, 023, 130, 013, 301, 222, 032, 201, 111, 323, 002, 330, 102,
+231, 120 ].
+
+Note that some elements are padded so that all elements have the same
+number of digits.
+
+* Radix sort
+
+We start by collecting elements with the same digit.
+
+| *Bucket*   | *Contents*        |
+|------------+-------------------|
+| 0          | 310 130 330 120   |
+| 1          | 301 201 111 231   |
+| 2          | 222 032 002 102   |
+| 3          | 213 023 013 323   |
+
+Emptying the buckets gives us a new list:
+
+[ 310, 130, 330, 120, 301, 201, 111, 231, 222, 032, 002, 102, 213, 023,
+013, 323 ].
+
+* Radix sort
+
+Using the new list, we collect elements with the same digit.
+
+| *Bucket*   | *Contents*        |
+|------------+-------------------|
+| 0          | 301 201 002 201   |
+| 1          | 310 111 213 013   |
+| 2          | 120 222 023 323   |
+| 3          | 130 330 231 032   |
+
+Emptying the buckets again:
+
+[ 301, 201, 002, 201, 310, 111, 213, 013, 120, 222, 023, 323, 130, 330,
+231, 032 ].
+
+* Radix sort
+
+Finally, we collect elements with the same digit.
+
+| *Bucket*   | *Contents*        |
+|------------+-------------------|
+| 0          | 002 013 023 032   |
+| 1          | 102 111 120 130   |
+| 2          | 201 213 222 231   |
+| 3          | 301 310 323 330   |
+
+This time, emptying the buckets will give us a sorted list.
+
+* Radix sort
+
+Radix sort has the air of a card trick about it, but it actually
+corresponds to how people sort things in real life.
+
+Sticking to computing, we can use radix sort on data with other kinds of
+keys too, such as strings (using 26 buckets or 52 for a case-sensitive
+sort).
+
+* Radix sort
+
+Generally, we need as many buckets as the number base or radix of the
+input. We need to inspect each element =k= times, where =k= is the
+number of digits in the biggest element.
+
+=k= will be relatively small compared to =n= (e.g. when =k=6=, we could
+have almost a million unique records). So the steps required is in the
+order =O(kn)=, or just =O(n)=.
+
+* Radix sort
+
+Since radix sort works in linear time, why do we even bother with other
+algorithms?
+
+The catch is in the *memory usage*.
+
+This depends on how we implement the algorithm.
+
+If =buckets= is a 2D array, each element has to be as big as
+the original list, because the whole list might end up in the same
+bucket.
+
+Thus, we need =Rn= additional storage, where =R= is the radix.
+
+Also, each element will be moved =2k= times.
+
+* More simple data structures
+
+So far we have used two basic data structures: the /array/ and the
+/linked list/.
+
+Both of these are general-purpose collection types, the main difference
+being that lists are more suitable when you don't know in advance the
+exact size of a collection.
+
+Arrays are more suitable when random access to elements is required,
+since this is O(1) for arrays and O(n) for lists.
+
+* More simple data structures
+
+We will now examine some more /specialised/ data structures,
+designed for particular tasks, starting with the /stack/.
+
+In each case, the underlying storage mechanism might be an array or a
+list -- it doesn't matter to us as users of, say, the stack. All that
+matters is that the stack provides the methods and capabilities we
+expect from a stack.
+
+* The stack
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/Stack.png]]
+#+END_center
+
+* The stack
+
+A /stack/ is a collection type that allows us to:
+
++ *push*, or add, elements onto the front (or "top") of it,
+
++ *pop* (remove) elements from the top of it and, usually,
+
++ *peek* at the front element without removing it.
+
+We cannot access anything other than the first element. If we want to
+get access to the third element, we need to call =pop= three times.
+
+This method of access is called *LIFO* -- last in, first out.
+
+* The stack
+
+Stacks are closely linked to low-level ways of interacting with
+computers and are used extensively in systems programming.
+
+Code that we write in a high-level language is compiled down to code
+that spends most of its time pushing and popping data from stacks.
+
+There are even stack-based programming languages such as Forth.
+
+* The stack
+
+Another important application for stacks is in writing , which convert
+raw text input (such as a source file written using a programming
+language) into data structures with some particular meaning.
+
+One of the steps involved in this task is often to push each /lexical
+token/ (in our source file these might include =if=, =else=, variable
+names etc) onto a stack.
+
+* The stack
+
+If we are implementing a stack using an array then the head of the
+stack isn't necessarily the first element in the array.
+
+Otherwise we would have to move elements every time we pushed or
+popped.
+
+* The stack
+
+Here is an empty stack with n elements.
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/stack1.svg]]
+#+END_center
+
+* The stack
+
+After calling =stack.push(3)=:
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/stack2.svg]]
+#+END_center
+
+* The stack
+
+=stack.push(8)=, =stack.push(99)=:
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/stack3.svg]]
+#+END_center
+
+* The stack
+
+At this point, =pop()= returns 99 and moves the position of the
+head.
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/stack4.svg]]
+#+END_center
+
+* The stack
+
+Alternatively, we could implement the stack using a list. This is
+simpler, since we can make =push= and =pop= just operate on the head of
+the list so we don't need to keep track of where the head is.
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/stack-as-list.svg]]
+#+END_center
+
+* Abstract data types
+
+A stack of ints that uses an array to store the data:
+
+#+BEGIN_SRC java
+class Stack {
+  int[] data;
+  int head;
+
+  public Stack(int n) {
+    data = new Object[n];
+    head = -1;
+  }
+  public void push(int e) {
+    data[++head] = e; //increment head then use its value 
+  }
+  public int pop() {
+    return data[head--]; //use head's value then decrement it
+  }
+  public int peek() {
+    return data[head];
+  }
+}
+#+END_SRC
+
+* Abstract data types
+
+There are various things missing from this implementation -- what are
+they?
+
+#+BEGIN_SRC java
+class Stack {
+  int[] data;
+  int head;
+
+  public Stack(int n) {
+    data = new Object[n];
+    head = -1;
+   }
+   public void push(int e) {
+     data[++head] = e; //increment head then use its value 
+   }
+   public int pop() {
+     return data[head--]; //use head's value then decrement it
+   }
+   public int peek() {
+     return data[head];
+   }
+}
+#+END_SRC
+
+* Abstract data types
+
+Or using a list...
+
+#+BEGIN_SRC java
+class Stack {
+  LinkedList data;
+
+  public Stack2() {
+    data = new LinkedList();
+  }
+  public void push(int e) {
+    data.cons(e);
+  }
+  public T pop() {
+    int h = data.head();
+    data = data.tail();
+    return h;
+  }
+  public int peek() {
+    return data.head();
+  }
+}
+#+END_SRC
+
+* Abstract data types
+
+This brings us to the idea of /abstract data types/ (ADTs).
+
+The stack is defined by the ability to push, pop and peek.
+
+There are many ways we might implement one.
+
+An ADT is a template that defines data and behaviour at an abstract
+level.
+
+This can be achieved using /Java generics/.
+
+* Java generics
+
+Java generics allow us to write code that works for many (or any)
+types.
+
+It is what is happening when you see Java code that uses "angle
+brackets", such as =strs = new ArrayList<String>()=.
+
+In the docs for the =ArrayList= class, you will see it described as
+=ArrayList<T>=. That means =ArrayList= is a container for objects of
+/any type/, which we call =T=.
+
+When we create an =ArrayList= we have to say what type of thing we want
+to store in it, i.e. what is the type =T=.
+
+* Abstract data types
+
+Using generics we can create a Stack that works for any type:
+
+#+BEGIN_SRC java
+public class Stack<T> {
+  //...
+  public void push(T e) { ... }
+  public T pop() { ... }
+  public T peek() { ... }
+}
+
+//
+
+Stack<Integer> myIntStack = new Stack<>();
+myIntStack.push(42); //OK
+myIntStack.push("Hi!"); //compile-time error
+#+END_SRC
+
+* Balancing parens
+
+As a demonstration of the usefulness of stacks, consider the task of
+ensuring that all parentheses are nicely balanced in a piece of text.
+
+So *{([()])}* is balanced but *{()* is not, because parens are not all
+closed, and neither is *([(]))*, because the nesting is wrong.
+
+We can model this problem with a stack.
+
+Every time we encounter an opening paren character, push it onto a
+stack.
+
+Every time we encounter a closing paren, pop the stack and check that
+the types match.
+
+* Balancing parens
+
+ *{* ([])}
+=push('{')=
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/parens1.svg]]
+#+END_center
+
+* Balancing parens
+
+{ *(* [])}
+=push('(')=
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/parens2.svg]]
+#+END_center
+
+* Balancing parens
+
+{( *[* ])}
+=push('[')=
+
+[[./images/parens3.svg]]
+
+* Balancing parens
+
+{([ *]* )}
+~pop()=='['~
+
+[[./images/parens3.svg]]
+
+* Balancing parens
+
+{([] *)* }
+~pop()=='('~
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/parens4.svg]]
+#+END_center
+
+* Balancing parens
+
+{([]) *}*
+~pop()=='{'~
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/parens5.svg]]
+#+END_center
+
+* Balancing parens
+
+An unbalanced example.
+
+*(* [(]))
+=push('(')=
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/parens-unbalanced1.svg]]
+#+END_center
+
+* Balancing parens
+
+An unbalanced example.
+
+( *[* (]))
+=push('[')=
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/parens-unbalanced2.svg]]
+#+END_center
+
+* Balancing parens
+
+An unbalanced example.
+
+([ *(* ]))
+=push('(')=
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/parens-unbalanced3.svg]]
+#+END_center
+
+* Balancing parens
+
+An unbalanced example.
+
+([( *]* ))
+~pop()!='['~
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/parens-unbalanced3.svg]]
+#+END_center
+
+* The queue
+
+A /queue/ is a collection with =insert= and =remove= methods, where
+=remove= returns the element that has been in the queue the
+longest. The methods are often called =enque= and =deque=.
+
+This method of access is called *FIFO* -- first in, first out.
+
+* The queue
+
+If we implement a queue using arrays, we need to keep references to the
+front and back of the queue.
+
+In this way, we know where to insert new elements, and from whence to
+remove the oldest element.
+
+If our implementation uses lists, we need to keep a reference to the
+front of the queue, because this won't be the same thing as the head of
+the list.
+
+* The queue
+
+#+BEGIN_SRC java
+class ListItem {
+  int data;
+  ListItem next;
+}
+class QueueList {
+  ListItem head;
+  int length=0;
+  public void insert(int e) {
+    head = new ListItem(e, head);
+    length++;
+  }
+  //...
+}
+#+END_SRC
+
+* The queue
+
+#+BEGIN_SRC java
+class QueueList {
+  //...
+  public int remove() {
+    ListItem front = head;
+    for(int i=0;i<length;i++) {
+      front = front.next;
+    }
+    length--;
+    return front.data;
+  }
+}
+#+END_SRC
+
+* The queue
+
+What order is =remove=? Can we improve on that?
+
+#+BEGIN_SRC java
+public int remove() {
+  ListItem front = head;
+  for(int i=0;i<length;i++) {
+    front = front.next;
+  }
+  length--;
+  return front.data;
+}
+#+END_SRC
+
+* The queue
+
+We can, by keeping track of the front of the queue.
+
+The easiest way to do that is by using a /doubly-linked/ list.
+
+This is a list where we can navigate to the previous element, as well
+as to the next.
+
+Then, we remove an item just switching the reference to the front of the
+queue up by one.
+
+* The doubly-linked list
+
+#+BEGIN_SRC java
+class DListItem {
+  int data;
+  DListItem previous;
+  DListItem next;
+  //...
+}
+class QueueList2 {
+  DListItem head;
+  DListItem front;
+  public void insert(int e) {
+    DListItem newHead = new DListItem(e, head);
+    head.setPrevious(newHead);
+    head = newHead;
+  }
+  //...
+}
+#+END_SRC
+
+* The doubly-linked list
+
+Now =remove= is O(1), a big saving for long queues!
+
+#+BEGIN_SRC java
+  //...
+  public int remove() {
+    DListItem oldFront = front;
+    front = front.previous;
+    return oldFront.data;
+  }
+}
+#+END_SRC
+
+* The dequeue
+
+There are several important variations on the queue, one of which is the
+/dequeue/ (pronounced /deck/, to distinguish it from the =dequeue= method).
+
+We can remove from either end of a deque, so we can use them
+/stack-wise/ or /queue-wise/.
+
+* The priority queue
+
+The next variation on the queue is the /priority queue/, in which
+elements with the highest "priority", whatever we choose to mean by
+that, are at the front of the queue.
+
+This data structure is useful for any sort of /scheduling task/, such as
+maintaining a queue of messages or of threads within an operating
+system.
+
+New elements need to be inserted according to their priority, so the
+order of the =insert= method is no longer O(1).
+
+* Visualising a priority queue
+
+Elements are ordered by priority, as well as the order in which they
+were added to the queue.
+
+When storing the data in an array, we move the position of =front= as
+elements are added and removed.
+
+Inserting an element is now O(n) since the new element might have a
+lower priority than anything currently in the queue.
+
+* Visualising a priority queue
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/pqueue.svg]]
+#+END_center
+
+* Higher levels of abstraction
+
+Each of the ADTs we've seen this week is an abstraction for a particular
+problem, such as maintaining a list of jobs that must be completed in
+FIFO order.
+
+The problems in question could be solved using the basic collection data
+types, but encapsulating the problem in the data type is a powerful form
+of abstraction.
+
+We encode the problem (e.g. the problem of managing a queue) in the
+data type.
+
+In later weeks we will look at more sophisticated ADTs that encapsulate
+different problems.
+
+For instance, the can be thought of as encoding the algorithm for
+binary search directly in the data type.
+
