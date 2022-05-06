@@ -1,159 +1,217 @@
-* Introduction
+* CI583: Data Structures and Operating Systems
 
+#+BEGIN_center  
+#+ATTR_ORG: :width 500
+[[../images/partition.png]]
+#+END_center
 
 * Trees
 
+#+BEGIN_center  
+#+ATTR_ORG: :width 1000
+[[./images/Forest-Trees.jpg]]
+#+END_center
 
-One of the most important sort of data types is the . There are many
-varieties of tree, and they can provide very efficient ways to store and
-retrieve data.
+* Trees
+
+One of the most important sort of data types is the *tree*.
+
+There are many varieties of tree, and they can provide very efficient
+ways to store and retrieve data.
 
 It could be that the data we are storing has a naturally "tree-like"
-hierarchical structure, such as an organisation chart. In this case, the
-structure of the tree represents the /manages/ relationship:
+hierarchical structure, such as an organisation chart.
 
-[[file:Organisation-Chart-Standard]]
+* Trees
+
+In this case, the structure of the tree represents the /manages/
+relationship:
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 600
+[[./images/Organisation-Chart-Standard.png]]
+#+END_center
 
 http://www.drawmeanidea.com
 
 * Trees
 
-
 More generally, there is no requirement that trees contain hierarchical
 data or that they are arranged in an ordered way, though we will often
 want to do this.
 
-Trees are a fundamental data structure that find many uses. Tree
-structures are widely used in , in which expressions from a programming
-language or arithmetic expressions are arranged into and :
+Trees are a fundamental data structure that find many uses.
 
-[[file:parse-tree]]
+Tree structures are widely used in /compilers/, in which expressions from a
+programming language or arithmetic expressions are arranged into an
+/abstract syntax tree/ :
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 300
+[[./images/parse-tree.svg]]
+#+END_center
 
 * Trees
-
 
 Some terminology:
 
-0.5 A is a structure within the tree that may contain data (called the
-or ).
+A /node/ is a structure within the tree that may contain data (called the
+/label/ or /key/).
 
-Each node has zero or more nodes and each node has one except for a
-single node called the , which has no parent node.
+Each node has zero or more /child/ nodes and each node has one
+/parent/ except for a single node called the /root/, which has no parent
+node.
 
-0.5
-
-[[file:tree1]]
-
-* Trees
-
-
-0.5 The connections between nodes are called , or . Those nodes with no
-children are called nodes.
-
-0.5
-
-[[file:tree1]]
+#+BEGIN_center  
+#+ATTR_ORG: :width 400
+[[./images/tree1.svg]]
+#+END_center
 
 * Trees
 
 
-0.5 The of a tree is the maximum number of edges from the root to a
-leaf. The of a node is the number of edges from the root to that node.
-Nodes with the same depth are at the same .
+The connections between nodes are called /branches/, or /edges/.
 
-A is formed by taking a node together with its children.
+Those nodes with no children are called /leaf/ nodes.
 
-A tree is one in which each node has at most two children (often called
-the and child).
+#+BEGIN_center  
+#+ATTR_ORG: :width 400
+[[./images/tree1.svg]]
+#+END_center
 
-0.5
+* Trees
 
-[[file:tree0]]
+The /height/ of a tree is the maximum number of edges from the root to
+a leaf.
 
-* Two non-trees
+The /depth/ of a node is the number of edges from the root to that
+node.
 
+#+BEGIN_center  
+#+ATTR_ORG: :width 400
+[[./images/tree0.svg]]
+#+END_center
 
-One of these structures is not a tree because there is more than one
-path from the root to a leaf node (it's a ), and the other one is just
-badly formed.
+* Trees
 
-[[file:graph]]
+Nodes with the same depth are at the same /level/.
 
-[[file:non-tree]]
+A /subtree/ is formed by taking a node together with its children.
 
-* Programming with trees
+A /binary/ tree is one in which each node has at most two children (often called
+the /left/ and /right/ child).
 
+#+BEGIN_center  
+#+ATTR_ORG: :width 400
+[[./images/tree0.svg]]
+#+END_center
+
+* A non-tree
+
+This is not a tree because there is more than one path from the root
+to a leaf node (it's a /graph).
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 400
+[[./images/graph.svg]]
+#+END_center
+
+* A non-tree
+
+This is not a tree because it is badly formed.
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 400
+[[./images/non-tree.svg]]
+#+END_center
 
 * Programming with trees
 
 
 Algorithms that operate on trees normally start with the root node then
-traverse the tree, either (keep following edges until we reach a leaf)
-or (examine all children before going any deeper).
+/traverse/ the tree.
+
+Traversals can be /depthwise/ (keep following edges until we reach a leaf)
+or /breadthwise/ (examine all children before going any deeper).
 
 * Programming with trees
 
+In this implementation we have an abstract superclass defining the
+things that any tree node must implement, then subclasses for branches
+and leaves.
 
 #+BEGIN_SRC java
-    abstract class Tree {
-      int label;
-      abstract int countNodes();
-      abstract int height();
-    }
-    class BranchNode extends Tree {
-      Tree left;
-      Tree right;
-      //...
-    }
-    class LeafNode extends Tree {
-      //...
-    }
+abstract class Tree {
+  int label;
+  abstract int countNodes();
+  abstract int height();
+}
+class BranchNode extends Tree {
+  Tree left;
+  Tree right;
+  //...
+}
+class LeafNode extends Tree {
+  //...
+}
 #+END_SRC
 
 * Programming with trees
 
+We implement the methods differently for branches and leaves. 
 
 #+BEGIN_SRC java
-    class BranchNode extends Tree {
-      int countNodes() {
-        return 1 + left.countNodes() + right.countNodes();
-      }
-    }
-    class LeafNode extends Tree {
-      int countNodes() {
-        return 1;
-      }
-    }
+class BranchNode extends Tree {
+  int countNodes() {
+    return 1 + left.countNodes() + right.countNodes();
+  }
+}
+class LeafNode extends Tree {
+  int countNodes() {
+    return 1;
+  }
+}
 #+END_SRC
 
+Note that =countNodes= is *recursive* and will be called repreatedly
+on the left and right child of every branch, drilling down to each
+leaf, where it stops recursing. 
 * Programming with trees
 
 
 #+BEGIN_SRC java
-    class BranchNode extends Tree {
-      int height() {
-        int lh = (left == null) ? 0 : left.height(); //tertiary if statement
-        int rh = (right == null) ? 0 : right.height();
-        return 1 + max(lh, rh);
-      }
-    }
-    class LeafNode extends Tree {
-      int height() {
-        return 0;
-      }
-    }
+class BranchNode extends Tree {
+  int height() {
+    int lh = (left == null) ? 0 : left.height(); //tertiary if statement
+    int rh = (right == null) ? 0 : right.height();
+    return 1 + max(lh, rh);
+  }
+}
+class LeafNode extends Tree {
+  int height() {
+    return 0;
+  }
+}
 #+END_SRC
 
 * Traversal
 
+The =countNodes= method is a *traversal* of the tree, in which each node is
+/visited/.
 
-The =countNodes= method is a of the tree, in which each node is .
 Visiting the node could mean adding the label to an array, printing the
-label, etc. To return to the parse tree example, in order to evaluate
-the expression that this tree represents ($2 \times (2+7)$), we can
-traverse it to collect the keys.
+label, etc.
 
-[[file:parse-tree]]
+* Traversal
+
+To return to the parse tree example, in order to evaluate the
+expression that this tree represents (2 * (2+7)), we can traverse it
+to collect the keys.
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 400
+[[./images/parse-tree.svg]]
+#+END_center
 
 * Traversal
 
@@ -168,143 +226,197 @@ There are three ways we might traverse a tree:
 3. *postorder*: traverse the left and right sub-trees then visit the
    node.
 
-[[file:parse-tree]]
-
 * Traversal
 
 
 Thus, we can retrieve three different expression from the tree:
 
-1. *inorder* : $2\,*\,2\,+\,7$, the /infix/ expression,
+1. *inorder* : 2 * 2 + 7, the /infix/ expression,
 
-2. *preorder*: $*\,2\,+\,2\,7$, the /prefix/ expression,
+2. *preorder*: * 2 + 2 7, the /prefix/ expression,
 
-3. *postorder*: $2\,2\,7\,+\,*$, the /postfix/ expression.
+3. *postorder*: 2 2 7 + *, the /postfix/ expression.
 
-[[file:parse-tree]]
+#+BEGIN_center  
+#+ATTR_ORG: :width 250
+[[./images/parse-tree.svg]]
+#+END_center
 
 * Traversal
 
 
 The postfix expression is unambiguous and can be evaluated conveniently
-using a stack. Read the expression; when we encounter an /operand/, push
-it onto a stack. When we encounter an /operator/, take two values from
-the stack, apply the operator and push the result.
+using a stack.
 
-[[file:postfix-stack0]]
+Read the expression;
 
-* Traversal
+When we encounter an /operand/, push it onto a stack.
 
-
-[[file:postfix-stack1]]
+When we encounter an /operator/, take two values from the stack, apply
+the operator and push the result back onto the stack.
 
 * Traversal
 
+Having pushed operands onto the stack, we encounter the first
+operator:
 
-[[file:postfix-stack2]]
-* Binary search trees
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/postfix-stack0.svg]]
+#+END_center
 
+So we pop twice, apply the operator and push the result onto the stack.
+* Traversal
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/postfix-stack1.svg]]
+#+END_center
+
+* Traversal
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/postfix-stack2.svg]]
+#+END_center
 
 * Binary search trees
 
 
 Trees start to get interesting when we place some constraints on their
-structure. One constraint is that their labels are . If we do this with
-a binary tree we get a (BST), defined as follows:
+structure.
 
-1. for each non-leaf node, $n$, the key of the left child is less than
-   the key of $n$ and the key of the right child is greater than the key
-   of $n$,
+One constraint is that their labels are /ordered/.
+
+If we do this with a binary tree we get a /binary search tree/ (BST).
+
+* Binary search trees
+
+The BST is a a binary tree with the following additional constraints:
+
+1. for each non-leaf node, =n=, the key of the left child is *less than*
+   the key of =n= and the key of the right child is *greater than* the key
+   of =n=,
 
 2. keys are unique, and
 
-3. the left and right children of $n$ are binary search trees.
+3. the left and right children of =n= are binary search trees.
 
 * Binary search trees
 
 
-To find a key, $k$, we start at the root, $r$. If the key of $r$ is less
-than $k$, we take the right sub-tree, if it exists, otherwise we take
-the left. If the sub-tree we need does not exist, then $k$ was not
-found. Otherwise, we keep following branches until we reach a leaf node,
-which either has a key equal to $k$ or $k$ was not found.
+To find a key, =k=, we start at the root, =r=.
 
-[[file:bst]]
+If the key of =r= is less than =k=, we take the right sub-tree, if it
+exists, otherwise we take the left.
 
-* Inserting to a BST
+If the sub-tree we need does not exist, then =k= was not
+found.
 
-
-Inserting a new key, $k$, works similarly. We find the right place to
-put $k$ by following branches until the sub-tree to follow does not
-exist, then we attach a new node with $k$ as the label.
-
-[[file:bst0]]
-
-* Inserting to a BST
-
-
-[[file:bst1]]
-
-* Inserting to a BST
-
-
-[[file:bst2]]
-
-* Inserting to a BST
-
-
-[[file:bst3]]
+Otherwise, we keep following left or right branches until we find =k=
+or reach a dead end.
 
 * Binary search trees
 
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/bst.svg]]
+#+END_center
 
-Deleting a node is more tricky. Deleting a node with one or zero
-branches is easy enough, but to delete a node with two branches we need
-to the branches to produce a new node. (Details in a lab session coming
-soon!)
+* Inserting to a BST
 
-[[file:bst]]
+Inserting a new key, =k=, is similar to searching.
+
+We find the right place to put =k= by starting at the root and
+following branches until the sub-tree to follow does not exist, then
+we attach a new node with =k= as the label.
+
+* Inserting to a BST
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/bst0.svg]]
+#+END_center
+
+* Inserting to a BST
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/bst1.svg]]
+#+END_center
+
+* Inserting to a BST
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/bst2.svg]]
+#+END_center
+
+* Inserting to a BST
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/bst3.svg]]
+#+END_center
+
+* Binary search trees
+
+Deleting a node is more tricky.
+
+Deleting a node with one or zero branches is easy enough, but to
+delete a node with two children we need to /merge/ the branches to
+produce a new node.
+
+(Details in a lab session coming soon!)
 
 * Balanced trees
 
 
-If we insert random data into our trees, they will remain fairly well .
-That is, the tree is as as possible, or has the minimum number of
-missing branches. Then, each pair of left and right sub-trees will
-contain (approximately) the same number of nodes and the distance from
-the root to any leaf will be similar. If the input is not random, e.g.
-is in descending order, the tree will become unbalanced.
+If we insert random data into our trees, they will remain fairly well
+/balanced/.
 
-[[file:unbalanced-tree]]
+That is, the tree is as /full/ as possible, or has the minimum number of
+missing branches.
+
+Then, each pair of left and right sub-trees will contain
+(approximately) the same number of nodes and the distance from the
+root to any leaf will be similar.
+
+If the data inserted to the tree is not random, e.g. is in descending
+order, the tree will become unbalanced.
+
+* Balanaced trees
+
+In this case the tree has poor performance characteristics.
+
+Search, insertion and deletion are all O(n), the same as a linked
+list.
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 400
+[[./images/unbalanced-tree.svg]]
+#+END_center
 
 * Balanced trees
 
+If we can maintain the balance, search trees can be extremely
+efficient.
 
-In this case the tree has poor performance characteristics: search,
-insertion and deletion are all $O(n)$. The family of are those where all
-operations on the tree maintain its balanced structure, requiring quite
-a lot of rearranging of nodes etc.
+If the tree is full then about half of all nodes are leaf nodes.
 
-[[file:unbalanced-tree]]
+On average, half of all searches will result in the need to traverse
+the tree all the way to a leaf.
 
-* Balanced trees
+In searching, we need to visit one node at each level.
 
-
-If we can maintain the balance, search trees can be extremely efficient.
-If the tree is full then about half of all nodes are leaf nodes. On
-average, half of all searches will result in the need to traverse the
-tree all the way to a leaf.
-
-In searching, we need to visit one node at each level. So, we can see
-how many steps a search will take by working out how many levels there
-are.
+So, we can see how many steps a search will take by working out how
+many levels there are.
 
 * Balanced trees
 
 
 Numbers of nodes and levels in a balanced tree:
 
-| *Nodes*         | *Levels*   |
+| Nodes           | Levels     |
 |-----------------+------------|
 | 15              | 4          |
 | 1023            | 10         |
@@ -316,59 +428,73 @@ Numbers of nodes and levels in a balanced tree:
 
 
 Thus, we can find one of a million unique elements in about 20 steps
-(sound familiar?). A balanced tree with $n$ nodes has $\lg(n+1)$ levels.
+(sound familiar?).
+
+A balanced tree with =n= nodes has lg(n+1) levels.
 
 * An imperative implementation
 
 
-* An imperative implementation
-
-
-Implementing trees functionally gives a representation which seems
-"natural", but we can also implement them /imperatively/.
+Implementing trees recursively as we did earlier gives a
+representation which seems "natural", but we can also implement them
+/imperatively/.
 
 We can store the labels in an array, without managing links between
-them. Every possible node in the tree is represented by a position in
-the array, whether or not the node exists. The array positions that map
-to non-existent nodes contain =null=, or some special value.
+them.
+
+Every possible node in the tree is represented by a position in the
+array, whether or not the node exists.
+
+The array positions that map to non-existent nodes contain =null=, or
+some special value.
+
+* An imperative implementation
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/array-tree.svg]]
+#+END_center
 
 * An imperative implementation
 
 
 Using this scheme, we can find the child and parent nodes of an index,
-$i$, using arithmetic:
+=i=, using arithmetic:
 
-1. The left child of $i$ is located at $2i+1$.
+1. The left child of =i= is located at =2i+1=.
 
-2. The right child of $i$ is located at $2i+2$.
+2. The right child of =i= is located at =2i+2=.
 
-3. The parent of $i$ is located at $\lfloor (i-1)/2 \rfloor$.
+3. The parent of =i= is located at =⌊(i-1)/2⌋=.
 
 * An imperative implementation
 
 
-Check for yourself that the formulae on the previous slide work.
+E.g. the node labelled 9 has the index 6, so its parent is found at
+index ⌊(6-1)/2⌋ = 2. 
 
-[[file:array-tree]]
-
-* Heaps and HeapSort
-
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/array-tree.svg]]
+#+END_center
 
 * Heaps
 
 
 Implementing a tree as an array wastes space and deletion requires us to
-move every element, so it isn't normally the best choice. It does lend
-itself to one important application though: . A heap is a binary tree
-with the following characteristics:
+move every element, so it isn't normally the best choice.
 
-1. It is : every level except the last one is full and the last row has
-   no gaps reading from left to right.
+It does lend itself to one important application though: *heaps*.
 
-2. Each node satisfies the : its label is greater than or equal to the
-   keys of its children.
+A heap is a binary tree with the following characteristics:
 
-Note that the invariants of the heap are weaker than that of the BST,
+1. It is /complete/: every level except the last one is full and the
+   last row has no gaps reading from left to right.
+
+2. Each node satisfies the /heap condition/: its label is greater than
+   or equal to the keys of its children.
+
+Note that the invariants of the heap are /weaker/ than that of the BST,
 but just strong enough to guarantee efficient insertion and removal.
 
 * Heaps
@@ -378,23 +504,27 @@ Any path through a heap gives an ordered list -- descending in our case,
 but we could have arranged it the other way round. Because a heap is
 complete, no space is wasted in the array.
 
-[[file:heap]]
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/heap.svg]]
+#+END_center
 
 * Heaps as priority queues
 
+We can use the heap to model a /queue/ or /priority queue/, where the
+root is the front of the queue (or has the highest priority).
 
-We can use the heap to model a , where the root is the front of the
-queue (or has the highest priority). When we remove the element at the
-front of the queue we need to restore the heap, making sure it is
-complete and satisfies the heap condition:
+When we remove the element at the front of the queue we need to
+/restore/ the heap, making sure it is complete and satisfies the heap
+condition:
 
 1. Remove the root node.
 
 2. Move the /last/ node to the root. The last node is the rightmost node
    on the lowest level.
 
-3. the new root until it's below a node larger than it and above a node
-   less than it, if one exists.
+3. /trickle down/ the new root until it's below a node larger than it
+   and above a node less than it, if one exists.
 
 * Deleting from a heap
 
@@ -402,223 +532,259 @@ complete and satisfies the heap condition:
 When trickling down, at each node we swap places with the /largest/
 child.
 
-[[file:heap-as-queue0]]
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/heap-as-queue0.svg]]
+#+END_center
 
 * Deleting from a heap
 
-
-[[file:heap-as-queue1]]
-
-* Deleting from a heap
-
-
-[[file:heap-as-queue2]]
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/heap-as-queue1.svg]]
+#+END_center
 
 * Deleting from a heap
 
-
-[[file:heap-as-queue3]]
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/heap-as-queue2.svg]]
+#+END_center
 
 * Deleting from a heap
 
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/heap-as-queue3.svg]]
+#+END_center
 
-[[file:heap-as-queue4]]
+* Deleting from a heap
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/heap-as-queue4.svg]]
+#+END_center
 
 * Inserting to a heap
 
+Inserting a new value to a heap is even easier.
 
-Inserting a new value to a heap is even easier: we put the new value in
-the first free position (starting a new level if necessary) and ,
-swapping places with the parent, until the node is smaller than its
-parent.
+We put the new value in the first free position (starting a new level
+if necessary) and /trickle up/, swapping places with the parent until
+the node is smaller than its parent.
 
-Our heap has $\lg(n+1)$ levels, where $n$ is the number of nodes.
+Our heap has lg(n+1) levels, where =n= is the number of nodes.
+
 Insertion and deletion require visiting one node on every level (at
-worst), so both operations are $O(\log n)$.
+worst), so both operations are O(log n).
 
 * Heapsort
 
-
 We can use heaps as the basis of an elegant and efficient sorting
-algorithm called . The idea is that we insert the unsorted values into a
-heap, then repeated applications of remove will give us a sorted
-collection.
+algorithm called *heapsort*.
+
+The idea is that we insert the unsorted values into a heap, then
+repeated applications of remove will give us a sorted collection.
 
 #+BEGIN_SRC java
-    for(int i=0;i<n;i++) {
-      theHeap.insert(theArray[i]);
-    }
-    for(int i=0;i<n;i++) {
-      array[i] = theHeap.remove();
-    }
+for(int i=0;i<n;i++) {
+  theHeap.insert(array[i]);
+}
+for(int i=0;i<n;i++) {
+  array[i] = theHeap.remove();
+}
 #+END_SRC
 
 * Heapsort
 
-
 After inserting some unsorted data into a heap:
 
-[[file:heap-sort0]]
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/heap-sort0.svg]]
+#+END_center
 
 * Heapsort
-
 
 We remove the root repeatedly, restoring the heap condition each time.
 
-[[file:heap-sort1]]
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/heap-sort1.svg]]
+#+END_center
 
 * Heapsort
 
-
-[[file:heap-sort2]]
-
-* Heapsort
-
-
-[[file:heap-sort3]]
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/heap-sort2.svg]]
+#+END_center
 
 * Heapsort
 
-
-[[file:heap-sort4]]
-
-* Heapsort
-
-
-[[file:heap-sort5]]
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/heap-sort3.svg]]
+#+END_center
 
 * Heapsort
 
-
-[[file:heap-sort6]]
-
-* Heapsort
-
-
-[[file:heap-sort7]]
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/heap-sort4.svg]]
+#+END_center
 
 * Heapsort
 
-
-[[file:heap-sort8]]
-
-* Heapsort
-
-
-[[file:heap-sort9]]
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/heap-sort5.svg]]
+#+END_center
 
 * Heapsort
 
-
-[[file:heap-sort10]]
-
-* Heapsort
-
-
-[[file:heap-sort11]]
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/heap-sort6.svg]]
+#+END_center
 
 * Heapsort
 
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/heap-sort7.svg]]
+#+END_center
 
-[[file:heap-sort12]]
+* Heapsort
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/heap-sort8.svg]]
+#+END_center
+
+* Heapsort
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/heap-sort9.svg]]
+#+END_center
+
+* Heapsort
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/heap-sort10.svg]]
+#+END_center
+
+* Heapsort
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/heap-sort11.svg]]
+#+END_center
+
+* Heapsort
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/heap-sort12.svg]]
+#+END_center
 
 * HeapSort
 
-
-=insert= and =remove= are both $O(\log n)$ and each are performed $n$
-times, so heapsort is $O(n \log n)$ (loglinear).
+=insert= and =remove= are both O(log n) and each are performed =n=
+times, so heapsort is O(n log n) (loglinear).
 
 Trickling up and down are quite expensive though, with lots of copying
-and swapping. Heapsort implementations apply optimisations such as
-reducing the number of swaps when trickling up, and allowing the heap to
-become temporarily disordered during a batch of insertions then
-restoring the heap condition in one go.
+and swapping.
 
-* Next time
-
-
-of various kinds.
-[[file:balanced-tree]]
-
-* Outline
-
+Heapsort implementations apply optimisations such as reducing the
+number of swaps when trickling up, and allowing the heap to become
+temporarily disordered during a batch of insertions then restoring the
+heap condition in one go.
 
 * Unbalanced trees
 
+#+BEGIN_center  
+#+ATTR_ORG: :width 400
+[[./images/unbalanced-tree.svg]]
+#+END_center
 
 * Unbalanced trees
 
+Earlier we saw how powerful and flexible a data structure is the tree.
 
-Last time we saw how powerful and flexible a data structure is the tree.
-We saw that binary search trees can provide $O(\log n)$ retrieval,
+We saw that binary search trees can provide O(log n) retrieval,
 insertion and removal.
 
-However, this is only true so long as the tree remains fairly well . If
-we insert sequential data to a tree then the nodes arrange themselves
-just like a linked list. *Performance degrades to linear time.*
+However, this is only true so long as the tree remains fairly well
+/balanced/.
+
+If we insert sequential data to a tree then the nodes arrange
+themselves just like a linked list.
+
+*Performance degrades to linear time.*
 
 * Unbalanced trees
 
+Say we have a tree made up of 10,000 nodes.
 
-[[file:unbalanced-tree]]
+If the tree is maximally unbalanced, then the worst-case scenario of
+searching for an item is that it takes *10,000* steps.
 
-Say we have a tree made up of 10,000 nodes. If the tree is maximally
-unbalanced, then the worst-case scenario of searching for an item is
-that it takes *10,000* steps. If the tree is completely balanced (or ,
-or ), the worst-case scenario is *14*.
+If the tree is completely balanced (or /complete/, or /full/), the
+worst-case scenario is *14*.
 
 * Unbalanced trees
-
 
 Most of the time trees may not be maximally unbalanced but inputting a
-run of sequential data may cause it to be partially unbalanced, or it
-may have begun with a very small or large root.
+run of sequential data may cause it to be partially unbalanced.
+
+We can get a very unbalanced tree if the first item is very small or
+large root.
 
 In a tree of natural numbers, for instance, if the root is labelled 3
-there can be at most two nodes in the left hand sub-tree. Operations on
-a tree like this will be somewhere between $O(n)$ and $O(\log n)$.
+there can be at most two nodes in the left hand sub-tree.
+
+Operations on a tree like this will be somewhere between O(n) and
+O(log n).
 
 * Self-balancing trees
 
+/Self-balancing/ trees are the solution to this problem.
 
-are the solution to this problem. The first of these were , invented by
-Adelson-Velskii and Landis in 1962.
+The idea is that self-balancing tree maintain the invariant that /no
+path from root to leaf is more than twice as long as any other/.
 
-The idea is that self-balancing tree maintain the invariant that no path
-from root to leaf is more than twice as long as any other. To achieve
-this, the tree must re-balance itself after insertion and deletion.
+To achieve this, the tree must re-balance itself after insertion and
+deletion.
 
 * Self-balancing trees
-
 
 Variations on this idea are used in file system design, relational
 databases, and whenever fast access to a large amount of data is
 required.
 
 For instance, relational databases store in memory in a self-balancing
-tree structure called a or , providing logarithmic access time with
-little or no IO.
+tree structure such as a *B+tree*, providing logarithmic access time
+with little or no IO.
 
-Linux file systems such as =ext3= store directory listings in a , which
-uses a hash function to create a two-level balanced tree of files. HTree
-indexing improved the scalability from a practical limit of , into the
-range of per directory.
-
-* Red-black trees
-
+Linux file systems such as =ext3= store directory listings in a
+*htree*, which uses a hash function to create a two-level balanced
+tree of files.
 
 * Red-black trees
-
 
 The type of self-balancing tree we will consider in detail is a BST
-called the . Like the heap we saw in the last lecture, we define a
-series of invariants for RB-trees and make sure that they will all still
-hold after each operation.
+called the *red-black tree*.
+
+Like the heap we saw in the last lecture, we define a series of
+invariants for RB-trees and make sure that they will all still hold
+after each operation.
 
 Red-black trees were invented in 1972 by Bayer.
 
 * Red-black trees
-
 
 The invariants on RB-trees:
 
@@ -629,149 +795,180 @@ The invariants on RB-trees:
 
 3. If a node is red, its children must be black.
 
-4. For each node, $x$, every path from $x$ to a leaf contains the same
+4. For each node, =x=, every path from =x= to a leaf contains the same
    number of black nodes.
 
-The motivation for these conditions is probably mysterious to you, but
-we will see that maintaining them results in a balanced tree and gives
-us the logarithmic performance we want.
+The motivation for these conditions won't be obvious right now, but we
+will see that maintaining them results in a balanced tree and gives us
+the logarithmic performance we want.
 
 * Red-black trees
-
 
 An example. The small filled black circles represent null pointers in
 the leaves (not normally depicted). These are always black. We won't
 normally show them but this is what we mean when we say the "leaves" are
 black.
 
-[[file:rb-tree0]]
+#+BEGIN_center  
+#+ATTR_ORG: :width 400
+[[./images/rb-tree0.svg]]
+#+END_center
 
 * Red-black trees
 
+The /black-height/ of a node =x= is the number of black nodes on a
+path from =x= to a leaf, not including =x=. So we can state condition
+4 in terms of black-height.
 
-The of a node $x$ is the number of black nodes on a path from $x$ to a
-leaf, not including $x$. So we can state in terms of black-height.
-
-[[file:rb-tree0]]
+#+BEGIN_center  
+#+ATTR_ORG: :width 600
+[[./images/rb-tree0.svg]]
+#+END_center
 
 * Red-black trees
-
 
 Because we include the null pointers a red-black tree is a BST -- every
-node has 2 or 0 children. The properties force a red-black tree with $n$
-nodes to have $O(\log n)$ height. Actually, the height will be
-$2(\log n +1)$ -- see (Cormen 2009, p309) for a proof.
+node has 2 or 0 children.
 
-(e.g. search, find the minimum or maximum element etc) will require a
-visit to every level at worst, giving us $O(h)$ or $O(\log n)$ time.
-(insertion and deletion) are more tricky.
+The properties force a red-black tree with =n= nodes to have O(log n)
+height.
+
+Actually, the height will be 2(log n +1) -- see (Cormen 2009, p309)
+for a proof.
+
+*Querying* (e.g. search, find the minimum or maximum element etc) will
+require a visit to every level at worst, giving us O(h) or O(log n)
+time.
+
+*Updating* (insertion and deletion) are more tricky.
 
 * Rotations
-
-
-* Rotations
-
 
 Before we can describe how to update a red-black tree, we need to
-understand . A rotation is a local change to the structure of the tree
-that preserves the RB properties.
+understand /rotation/.
 
-[[file:rb-rotation]]
+A rotation is a local change to the structure of the tree that
+preserves the RB properties.
 
-* Rotations
-
-
-The left-rotation pivots around the link from $x$ to $y$. When we rotate
-in either direction we assume that $x$ and $y$ are not nil (i.e. they
-are real, internal nodes). The $\alpha$, $\beta$ and $\gamma$ components
-might be nil or might be actual subtrees. Either way, they are properly
-balanced RB trees.
-
-[[file:rb-rotation]]
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/rb-rotation.svg]]
+#+END_center
 
 * Rotations
 
+The left-rotation pivots around the link from =x= to =y=.
 
-We can easily see that rotations preserve the BST property: The keys in
-$\alpha$ are less than the key of $x$, which is less than the key of
-$y$, and so on.
+When we rotate in either direction we assume that =x= and =y= are not
+nil (i.e. they are real, internal nodes).
 
-[[file:rb-rotation]]
+The α (alpha), β (beta) and γ (gamma) components might be nil or might
+be actual subtrees.
+
+Either way, they are properly balanced RB trees.
 
 * Rotations
 
+We can easily see that rotations preserve the BST property: The keys
+in α are less than the key of =x=, which is less than the key of =y=,
+and so on.
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/rb-rotation.svg]]
+#+END_center
+
+* Rotations
 
 An example within a BST.
 
-[[file:rb-rotate-eg0]]
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/rb-rotate-eg0.svg]]
+#+END_center
 
 * Rotations
-
 
 An example within a BST.
 
-[[file:rb-rotate-eg1]]
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/rb-rotate-eg1.svg]]
+#+END_center
 
 * Rotations
-
 
 Rotations take constant time since they only involve switching some
-pointers around. Recolouring is, of course, also done in constant
-time.
+pointers around.
+
+Recolouring is also done in constant time.
 
 We will see that these two techniques are all we need to maintain the
 properties in a red-black tree.
 
 * Inserting to a red-black tree
 
+We insert an element, =x=, to a red-black tree, =T=, as follows:
 
-* Inserting to a red-black tree
+1. Insert =x= as if =T= were an ordinary BST. This step may break the
+   RB properties.
 
+2. Colour =x= red.
 
-We insert an element, $x$, to a red-black tree, $T$, as follows:
+3. Restore the RB properties by /recolouring/ and /rotation/.
 
-1. Insert $x$ as if $T$ were an ordinary BST -- see last lecture. This
-   step may break the RB properties.
-
-2. Colour $x$ red.
-
-3. Restore the RB properties by and .
-
-After restoring the RB properties we know that the new tree, $T'$, is
+After restoring the RB properties we know that the new tree, =T'=, is
 balanced (by the proof in Cormen mentioned before).
 
 * Inserting to a red-black tree
-
 
 *Demo*
 
 * Case 1: Recolouring
 
+We can /recolour/ a node whenever doing so does not change the
+black-heights of the tree.
 
-We can a node whenever doing so does not change the black-heights of the
-tree. This occurs when the parent and (other child of the grandparent)
-of the node are both red.
+This occurs when the parent and (other child of the grandparent) of
+the node are both red.
 
-[[file:rb-recolour0]]
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/rb-recolour0.svg]]
+#+END_center
 
-Recolouring moves the problem up the tree. $A$ is shown with only one
-child because it doesn't matter if $B$ is the right or left child.
+* Case 1: Recolouring
+
+Recolouring moves the problem up the tree. A is shown with only one
+child because it doesn't matter if B is the right or left child.
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/rb-recolour0.svg]]
+#+END_center
 
 * Case 2: left rotation
 
+If we can't recolour any more, we use rotations.
 
-If we can't recolour any more, we use rotations. The first case is where
-$z$, the violating node, is the right child of its parent. We use a left
-rotation to achieve the situation where $z$ is the left child.
+The first case is where =z=, the violating node, is the /right/ child of
+its parent. We use a left rotation to achieve the situation where =z=
+is the left child.
 
-[[file:rb-rotate-left]]
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/rb-rotate-left.svg]]
+#+END_center
 
 * Case 3: right rotation and recolouring
 
+Case 2 is followed immediately by case 3, in which we use a /right
+rotation/ and /recolouring/.
 
-Case 2 is followed immediately by case 3, in which we use a and .
-
-[[file:rb-rotate-right]]
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/rb-rotate-right.svg]]
+#+END_center
 
 Note that case 2 falls through into case 3, but case 3 is a case of its
 own -- i.e. if case 2 is not applicable we may still be able to apply
@@ -779,144 +976,94 @@ case 3.
 
 * Case 3: right rotation and recolouring
 
+Note that recolouring =C= is not a problem (will not produce two reds
+in a row) because we know that the root of the subtree δ (delta) is
+black -- otherwise we would be in case 1. When there are no longer two
+red nodes in a row, the algorithm terminates.
 
-Note that recolouring $C$ is not a problem (will not produce two reds in
-a row) because we know that the root of the subtree $\delta$ is black --
-otherwise we would be in case 1. When there are no longer two red nodes
-in a row, the algorithm terminates.
-
-[[file:rb-rotate-right]]
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/rb-rotate-right.svg]]
+#+END_center
 
 * Red-black insertion
 
-
 ** A complete example
-
 
 Preparing to insert a value to a red-black tree.
 
-[[file:rb-insert-eg0]]
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/rb-insert-eg0.svg]]
+#+END_center
 
 * Red-black insertion
 
-
 ** A complete example
 
+After inserting the new node and colouring it red, we have broken
+/condition 3/. Looking at the grandparent of the new node, we have a
+candidate for recolouring.
 
-After inserting the new node and colouring it red, we have broken .
-Looking at the grandparent of the new node, we have a candidate for
-recolouring.
-
-[[file:rb-insert-eg1]]
+#+BEGIN_center  
+#+ATTR_ORG: :width 600
+[[./images/rb-insert-eg1.svg]]
+#+END_center
 
 * Red-black insertion
 
-
 ** A complete example
-
 
 Now the violation has moved further up the tree and we can't do any more
 recolouring. The violating node is the child of its parent, so use right
 rotation.
 
-[[file:rb-insert-eg2]]
+#+BEGIN_center  
+#+ATTR_ORG: :width 600
+[[./images/rb-insert-eg2.svg]]
+#+END_center
 
 * Red-black insertion
 
-
 ** A complete example
-
 
 We have straightened out the dog-leg. now the violating node is the
 right child of its parent. Rotate the left.
 
-[[file:rb-insert-eg3]]
+#+BEGIN_center  
+#+ATTR_ORG: :width 600
+[[./images/rb-insert-eg3.svg]]
+#+END_center
 
 * Red-black insertion
-
 
 ** A complete example
 
-
 Recolour the root and we are done.
 
-[[file:rb-insert-eg4]]
+#+BEGIN_center  
+#+ATTR_ORG: :width 600
+[[./images/rb-insert-eg4.svg]]
+#+END_center
 
 * Red-black insertion
 
+The pseudocode for insertion to a red-black tree is quite easy to
+follow but too long to go on a slide, simply because there are a lot
+of cases to consider.
 
-The pseudocode for insertion to a red-black tree is quite easy to follow
-but a bit too long to go on a slide, simply because there are a lot of
-cases to consider. Again, see Cormen for an example.
+Again, see Cormen for an example.
 
 * Deleting from a red-black tree
 
-
-* Red-black deletion
-
-
 Similarly to insertion, we delete from a red-black tree just as we would
 from a BST, then call a "fixup" routine to repair the RB properties that
-might have been broken in the previous step. Again, properties are fixed
-by recolouring and rotation.
+might have been broken in the previous step.
+
+Again, properties are fixed by recolouring and rotation.
 
 Deleting a red node cannot violate the RB properties so we only call the
 "fixup" routine when the node we removed was black.
-
-* Red-black deletion
-
-
-Let $y$ be a black node removed from a red-black tree and $x$ be the
-node that takes its place. What might have been broken by the removal of
-$y$?
-
-1. If $y$ was the root of the tree and $x$ is red, we have violated .
-
-2. If $x$ and $x.p$ are both red, we have violated .
-
-3. The removal of $y$ means that there is one less black node in any
-   path through $x$, so we have definitely violated .
-
-To get around the last problem we start by saying that $x$ is either
-/doubly black/ (if it was black to start with) or /red-black/. In this
-way, $x$ contributes 2 or 1 to the black-height of any path passing
-through it, rather than 1 or 0.
-
-* Red-black deletion
-
-
-We don't actually change the colour value of $x$ (the node that took
-$y$'s place). We keep track of it just by the fact that $x$ is pointing
-to it. The goal of the deletion fixup algorithm is to move this extra
-blackness up the tree until:
-
-1. $x$ points to a red-black node, in which case we colour it back.
-
-2. $x$ points to the root, in which case we are done.
-
-3. We apply recolouring and rotations until the properties are fixed.
-
-* Red-black deletion
-
-
-Thus, whilst $x$ is a non-root doubly black node, we have changes that
-need to be made. The cases are as follows:
-
-1. *Case 1*: $x$'s sibling, $w$, is red. Rotate and recolour.
-
-2. *Case 2*: $w$ is black and both of $w$'s children are black. Recolour
-   and move the problem further up the tree.
-
-3. *Case 3*: $w$ is black, $w.\mathit{left}$ is red and
-   $w.\mathit{right}$ is black. Recolour and rotate.
-
-4. *Case 4*: $w$ is black, $w.\mathit{left}$ is red. Recolour and
-   rotate.
-
-Note that these cases aren't mutually exclusive.
-
-* Inserting to a red-black tree
-
 
 *Demo*
 
@@ -925,4 +1072,4 @@ Note that these cases aren't mutually exclusive.
 * Next week
 
 
-An overview of some algorithmic strategies: , , , .
+An overview of some algorithmic strategies.

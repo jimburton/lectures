@@ -5,9 +5,7 @@
 [[../images/partition.png]]
 #+END_center
 
-* What are you studying, and why?
-
-*This is a module in which you level up your programming skills*.
+* This is a module in which you level up your programming skills
 
 *Data structures and algorithms*, with a focus in the latter part of
 the module on their application in operating systems.
@@ -80,8 +78,10 @@ Contact time is organised as follows:
   topics.
 
 + Weekly lab sessions in which you will be able to experiment with and
-  implement some of the ideas covered in lectures. Once the assignment
-  has been given out, the labs can also be used as a clinic for that.
+  implement some of the ideas covered in lectures.
+
+  Once the assignment has been given out, the labs can also be used as
+  a clinic for that.
 
 * How will you learn it?
 
@@ -104,7 +104,7 @@ roughly one third of the way through the module.
 This is a programming problem, in which you will implement some of the
 data structures and algorithms described in the lectures.
 
-You will also submit a reflective report on the complexity of the
+You will also submit a technical report on the complexity of the
 algorithms involved and of your solution.
 
 * Module overview
@@ -130,17 +130,23 @@ We will look at the pros and cons of each, and how to implement them.
 We will look at a variety of approaches to /searching, sorting and
 selecting data/.
 
+We will look at ways of /analysing the performance/ of algorithms
+using simple mathematical methods.
+
+* Module overview 
+
 In the process of doing this we will consider algorithmic strategies
 such as
+
   + /the greedy method/,
+
   + /divide-and-conquer/,
+
   + /dynamic programming/, and
+
   + /backtracking/.
 
 We will also see how we can use /chance/ to design elegant algorithms.
-
-We will look at ways of /analysing the performance/ of algorithms
-using simple mathematical methods.
 
 * Resources
 
@@ -242,8 +248,8 @@ occupied:
 
 * Simple collections: array
 
-Given an array, ~a~, with 10 indices, we access the /ith/ element as
-~a[i]~.
+Given an array, ~a~, with 10 indices, we access the /ith/ element in
+Java with square brackets: ~a[i]~.
 
 The first element is ~a[0]~ and if ~i>9~, we get a *runtime error*.
 
@@ -279,8 +285,8 @@ Everything after that is called the /head/.
 
 * Searching
   
-Suppose we have an array containing unsorted data and we need to find
-a particular element, x.
+Suppose we have an array containing /unsorted/ data and we need to find
+a particular element, =x=.
 
 #+BEGIN_center  
 #+ATTR_ORG: :width 800
@@ -289,7 +295,7 @@ a particular element, x.
 
 * Searching
 
-Our only option is to examine each element in the array, y, and check
+Our only option is to examine each element in the array, =y=, and check
 whether ~x=y~.
 
 #+BEGIN_center  
@@ -297,17 +303,17 @@ whether ~x=y~.
 [[./images/search-list.svg]] 
 #+END_center
 
-As simple as it is, this is our /algorithm/, called /sequential
-search/.
+As simple as it is, this is our /algorithm/, called *sequential
+search*.
   
 How many steps will this take for an array of length 10? An array of
-length n?
+length =n=?
 
 
 * Searching
   
-To see how many steps it will take to search our array (of length n)
-for an element, x, there are several cases we need to consider.
+To see how many steps it will take to search an array of length =n=
+for an element, =x=, there are several cases we need to consider.
 
 #+BEGIN_center  
 #+ATTR_ORG: :width 800
@@ -406,14 +412,15 @@ Let's try again.
 What if we start in the /middle/ of the array?
 
 Then either we find x straight away, or the element we're looking at
-is greater than or less than x.
+is /reater than/ or /less than/ x.
 
 * Searching
 
 In either case, now we only need to consider half of the array.
 
-At one step, we have halved the size of the problem. We can then apply
-the same step repeatedly.
+At one step, we have *halved the size of the problem*.
+
+We can then apply the same step repeatedly.
   
 This is called *binary search*.
 
@@ -428,9 +435,9 @@ This is called *binary search*.
 
 *** Step 1
 
-+ Pick the middle element (~n/2~), and call it y.
++ Pick the middle element (~n/2~), and call it =y=.
 
-+ y is greater than x, so ignore everything to the /right/ of y and
++ =y= is greater than =x=, so ignore everything to the /right/ of =y= and
   search again.
 
 * Binary search
@@ -444,9 +451,9 @@ This is called *binary search*.
 
 *** Step 2
 
-+ Pick the new middle element and call it y.
++ Pick the new middle element and call it =y=.
 
-+ Again, y is greater than x, so ignore everything to the /right/ of y
++ Again, =y= is greater than =x=, so ignore everything to the /right/ of =y=
   and search again.
 
 * Binary search
@@ -460,7 +467,7 @@ This is called *binary search*.
 
 *** Step 3
 
-+ Pick the new middle element and call it y.
++ Pick the new middle element and call it =y=.
 
 + This time, ~y = x~ and we are done.
 
@@ -468,10 +475,12 @@ This is called *binary search*.
 
 Binary search *halves* the size of the problem at each step.
 
-It performs incredibly well:
+It performs incredibly well.
 
-searching a list of one million items won't take more than twenty
+Searching a list of /one million items/ won't take more than twenty
 steps.
+
+It only takes ten more steps than that to seach /one billion items/.
 
 * Binary search
 
@@ -489,7 +498,7 @@ Steps required to find an element in an ordered array of length n.
 |  100,000,000  |      27 |
 |  1000,000,000 |      30 |
 
-You can check this by repeatedly halving n until it is too small to
+You can check this by repeatedly halving =n= until it is too small to
 divide further.
 
 * Binary search
@@ -499,15 +508,15 @@ divide further.
 
 FUNCTION bsearch (x, a)
   start <- 0
-  end <- length(a)
+  end   <- length(a)
   WHILE start <= end
-    middle = (start + end) / 2
-    IF a[middle] < x
-      start = middle + 1
-    ELIF a[middle] = x
-      RETURN middle
-    ELSE -- must be a[middle] > x
-      end = middle - 1
+    mid = (start + end) / 2
+    IF a[mid] < x
+      start <- mid + 1
+    ELIF a[mid] = x
+      RETURN mid
+    ELSE -- must be a[mid] > x
+      end <- mid - 1
     ENDIF
   ENDWHILE
   RETURN -1
@@ -556,21 +565,26 @@ list /cons/.
 Getting access to the head and consing are cheap operations with a
 fixed cost.
 
-Unlike the array, accessing the ~nth~ element takes n steps.
+Unlike the array, accessing the ~nth~ element takes =n= steps.
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/Linkedlist.png]]
+#+END_center
 
 * The linked list
   
 One of the ways of using a linked list in Java is to use the
 ~ArrayList~ class.
 
-Or we could write our own. A class for nodes in the list:
+Or we could write our own. A class for items in the list:
 
 #+BEGIN_SRC java
-private class Node {
+private class ListItem {
   int data
-  Node next;
+  ListItem next;
 
-  public Node(int data) {
+  public ListItem(int data) {
     this.data = data;
     next = null;
   }
@@ -584,24 +598,38 @@ A class for the list itself:
 #+BEGIN_SRC java  
 public class LinkedList {
 
-  Node head;
+  ListItem head;
 
   public LinkedList(int data) {
-    head = new Node(data);
+    head = new ListItem(data);
   }
 
   public void cons (int data) {
-    Node tail = head;
-    head = new Node(data);
+    ListItem tail = head;
+    head = new ListItem(data);
     head.next = tail;
   }
 }
 #+END_SRC
 
-* After the break
+* Complexity
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/complex.jpg]]
+#+END_center
+* Complexity
 
 We will introduce some simple mathematical notation for describing
 the /time/ and /space/ costs of an algorithm, called its *complexity*.
+
+Complexity is *not* about how "complicated" an algorithm is.
+
+Complexity is about measuring the rate at which the number of steps
+taken (and the amount of memory consumed) by the algorithm grows as the
+amount of data to be considered increases.
+
+* Complexity
 
 We will see that we can categorise all algorithms into classes which
 have the same complexity.
@@ -651,11 +679,11 @@ complexity.
   
 * Floor and Ceiling
  
-If n is a number then we say the /floor/ of n, written ⌊n⌋, is the
+If n is a number then we say the /floor/ of n, written *⌊n⌋*, is the
 largest integer that is less than or equal to n.
     
 
-Similarly, we say that the /ceiling/ of n, written ⌈n⌉
+Similarly, we say that the /ceiling/ of n, written *⌈n⌉*
 is the smallest integer that is greater than or equal to n.
 
 
@@ -681,8 +709,8 @@ If n=11 then we need ⌊11/2⌋ steps, which is also equal to 5.
 
 * Factorial
 
-The /factorial/ of a number, n, written ~n!~, is the product of the
-numbers between 1 and n.
+The /factorial/ of a number, =n=, written *n!*, is the product of the
+numbers between 1 and =n=.
 
 So, 4! = 1 x 2 x 3 x 4 = 24
   
@@ -864,8 +892,10 @@ commonly occurring functions (this graph is an approximation):
 #+ATTR_ORG: :width 800
 [[./images/time-complexity.png]]
 #+END_center
-  
-* Growth rates: Constant time, O(1)
+
+* Growth rates
+
+** Constant time, O(1)
 
 Constant time means that /no matter how large the input is, the time
 taken doesn’t change/.
@@ -876,9 +906,13 @@ Some examples of O(1) operations:
 
 + Accessing an element in an array.
 
++ Taking the head of a linked list.
+
 + Using a constant-size lookup table or hash table.
 
-* Growth rates: Logarithmic time, O(log n)
+* Growth rates
+
+** Logarithmic time, O(log n)
 
 An algorithm which /cuts the problem in half each time/ is
 logarithmic.
@@ -890,7 +924,9 @@ An O(log n) operation will take longer as n increases, but once n gets
 fairly large the number of steps required will increase quite slowly.
 
 
-* Growth rates: Linear time, O(n)
+* Growth rates
+
+** Linear time, O(n)
 
 Linear time means that /for every element, a constant number of
 operations is carried out/, such as comparing each element to a known
@@ -905,7 +941,9 @@ unsorted list using sequential search.
 
 
 
-* Growth rates: Loglinear time, O(n log n)
+* Growth rates
+
+** Loglinear time, O(n log n)
 
 O(n log n) means that an O(log n) operation is carried out
 for each item in the input.
@@ -916,7 +954,9 @@ Examples of loglinear operations are quicksort (in the average and
 best case), heapsort and merge sort.
 
 
-* Growth rates: Quadratic time: O(n^2)
+* Growth rates
+
+** Quadratic time: O(n^2)
 
 Quadratic time often means that for every element, you do something
 with every other element, such as comparing them.
@@ -928,7 +968,9 @@ Examples of O(n^2) operations are quicksort (in the worst case) and
 bubble sort.
 
 
-* Growth rates: Exponential time: O(2^n)
+* Growth rates
+
+** Exponential time: O(2^n)
 
 Exponential time means that the number of steps required will rise by
 a power of two with each additional element in the input data set.
@@ -944,13 +986,15 @@ salesman/ problem with a solution that uses /dynamic programming/.
 
 We will study this problem in later weeks.
 
-* Growth rates: Factorial time: O(n!)
+* Growth rates
+
+** Factorial time: O(n!)
 
 A factorial time solution involves doing something for all possible
-permutations of the n elements.
+permutations of the =n= elements.
     
 An operation with this complexity is impractical for all but small
-values of n.
+values of =n=.
     
 An example of an O(n!) operation is the travelling salesman problem
 using brute force, where every combination of paths will be examined.
@@ -970,8 +1014,8 @@ encountered orders:
 | O(n log n) |   30      |   700  |
 | O(n^2)     |  100      |  1000  |
 | O(2^n)     | 1024      | 2^100  |
-| O(n!)      | 3,628,800 | *100!* |
- 
+| O(n!)      | 3,628,800 |  100!  |
+
 * Growth rates of algorithms
 
 #+BEGIN_center  

@@ -5,6 +5,13 @@
 [[./../images/partition.png]]
 #+END_center
 
+* CI583: Data Structures and Operating Systems
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/sort.jpg]]
+#+END_center
+
 * Simple sorting algorithms
 
 The next algorithms we consider are three of the simplest algorithms for
@@ -34,18 +41,30 @@ efficient search and retrieval.
 
 Relational databases manage to do just this.
 
-An index is a sorted structure containing column data that often needs
-to be searched, such as a primary key.
-
-It takes longer to insert to a table with indexes on it, but searching
-is /much/ faster.
+If we have a table of customer information with a million rows and we
+want to search for a user with a certain email address, that could
+take a million steps.
 
 * Simple sorting algorithms
 
-After this lecture, it will benefit you to experiment with the applets
-on studentcentral that visualise the various algorithms.
+Instead of searching the entire (unsorted) table, we can create an
+*index* for that column, a data structure that can be searched in
+O(log n) time, and search that instead.
 
-Do this carefully and with the slides handy at the same time.
+So searching for the email will now take at most 20 steps.
+
+The trade-off is that every time we change the table we need to keep
+the index up to date.
+
+* Simple sorting algorithms
+
+After this lecture, it will benefit you to experiment with the
+visualisation website linked to on My Studies.
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 900
+[[./images/scr.png]]
+#+END_center
 
 * Bubble sort
 
@@ -60,7 +79,7 @@ version that could be optimised in various ways.
 The general idea is for larger values to move ("bubble") up through the
 collection until everything is in the right place.
 
-Each element, e, is compared with its neighbour, e'. If e>e',
+Each element, =x=, is compared with its neighbour, =y=. If =x>y=,
 then their places are swapped.
 
 We continue in this way until we reach the end of the collection,
@@ -68,7 +87,7 @@ which is the end of the /first pass/.
 
 * Bubble sort
 
-After the first pass, the last element in the collection is the
+After the first pass, the last element in the collection must be the
 largest one, and that position is sorted.
 
 On the next pass, we only need to consider n-1 values, where n is
@@ -81,21 +100,104 @@ we stop.
 
 One pass of bubble sort:
 
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/bsort1.svg]]
+#+END_center
+
+* Bubble sort
+
+One pass of bubble sort:
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/bsort2.svg]]
+#+END_center
+
+* Bubble sort
+
+One pass of bubble sort:
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/bsort3.svg]]
+#+END_center
+
+* Bubble sort
+
+One pass of bubble sort:
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/bsort4.svg]]
+#+END_center
+
+* Bubble sort
+
+One pass of bubble sort:
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/bsort5.svg]]
+#+END_CENTER
+
+* Bubble sort
+
+One pass of bubble sort:
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/bsort6.svg]]
+#+END_center
+
+* Bubble sort
+
+One pass of bubble sort:
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/bsort7.svg]]
+#+END_center#
+
+* Bubble sort
+
+One pass of bubble sort:
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/bsort8.svg]]
+#+END_center
+
+* Bubble sort
+
+One pass of bubble sort:
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/bsort9.svg]]
+#+END_center
+
+* Bubble sort
+
+One pass of bubble sort:
+
+#+BEGIN_center  
+#+ATTR_ORG: :width 800
+[[./images/bsort10.svg]]
+#+END_center
+
 * Bubble sort
 
 #+BEGIN_SRC
--- Sort the contents of the array a
 PROCEDURE bubbleSort( a : array of items )
-  loop <- length(a)
   i <- 0
-  WHILE i < loop-1
+  WHILE i < length(a)-1
     swapped <- false
     j <- 0		
-    WHILE j < loop-1
-      IF list[j] > list[j+1]
-        -- swap them
-        swap( list[j], list[j+1] )		 
-        swapped = true
+    WHILE j < length(a)-1
+      IF a[j] > a[j+1]
+        swap( a[j], a[j+1] )		 
+        swapped <- true
       ENDIF
       j <- j+1
     ENDWHILE
@@ -118,9 +220,9 @@ We will concentrate on the /worst/ case.
 
 * Complexity of bubble sort
 
-The worst case is when the input was in reverse order:
+The worst case is when the input was in reverse order.
 
-at the beginning of the first pass, the largest element is in first
+At the beginning of the first pass, the largest element is in first
 place and is swapped all the way to the end.
 
 At the beginning of the second pass, the second largest element is in
@@ -296,9 +398,10 @@ performance.
 
 * Insertion sort
 
-Most of the time, has the best performance of the simple sorts we're
-looking at today. It is still O(n^2) but about /twice as fast/ as bubble
-sort.
+Most of the time, insertion sort has the best performance of the
+simple sorts we're looking at today.
+
+It is still O(n^2) but about /twice as fast/ as bubble sort.
 
 The idea is to start by sorting the first two elements then, as we move
 along the collection, to each element in the right place in the sorted
@@ -402,9 +505,8 @@ Part of a run of insertion sort:
 #+BEGIN_SRC
 PROCEDURE insertionSort( a : array of items )
   slot <- 0
-  len <- length(a)
   i <- 0
-  WHILE i < len
+  WHILE i < length(a)
     val <- a[i]
     slot <- i
     WHILE slot > 0 AND a[slot-1] > val
@@ -412,6 +514,7 @@ PROCEDURE insertionSort( a : array of items )
       slot <- slot-1
     ENDWHILE
     a[slot] <- val
+    i <- i+1
   ENDWHILE
   RETURN a
 END 
@@ -419,8 +522,8 @@ END
 
 * Complexity of insertion sort
 
-The previous two sorts the size of the problem at each pass. In this
-case we it.
+The previous two sorts the size of the problem reduces with each
+pass. In this case we increase it.
 
 On the first pass, we make one comparison, on the second, a
 maximum of two, and so on.
@@ -440,13 +543,13 @@ each other.
 
 What's more, it has *O(n)* time complexity!
 
-This is .
+This is /linear time/.
 
 For each element in the input, radix sort looks at one digit at a time
 starting with the least significant.
 
 Elements with the same value for that digit are "thrown" into the same
-.
+/bucket/ (array).
 
 * Radix sort
 
@@ -460,9 +563,9 @@ number of digits.
 
 * Radix sort
 
-We start by collecting elements with the same digit.
+We start by collecting elements with the /same first digit/.
 
-| *Bucket*   | *Contents*        |
+| Bucket     | Contents          |
 |------------+-------------------|
 | 0          | 310 130 330 120   |
 | 1          | 301 201 111 231   |
@@ -476,9 +579,9 @@ Emptying the buckets gives us a new list:
 
 * Radix sort
 
-Using the new list, we collect elements with the same digit.
+Using the new list, we collect elements with the same /second/ digit.
 
-| *Bucket*   | *Contents*        |
+| Bucket     | Contents          |
 |------------+-------------------|
 | 0          | 301 201 002 201   |
 | 1          | 310 111 213 013   |
@@ -492,16 +595,16 @@ Emptying the buckets again:
 
 * Radix sort
 
-Finally, we collect elements with the same digit.
+Finally, we collect elements with the same /third/ digit.
 
-| *Bucket*   | *Contents*        |
+| Bucket     | Contents          |
 |------------+-------------------|
 | 0          | 002 013 023 032   |
 | 1          | 102 111 120 130   |
 | 2          | 201 213 222 231   |
 | 3          | 301 310 323 330   |
 
-This time, emptying the buckets will give us a sorted list.
+This time, emptying the buckets will give us a sorted list. Ta-daa!
 
 * Radix sort
 
@@ -531,9 +634,9 @@ The catch is in the *memory usage*.
 
 This depends on how we implement the algorithm.
 
-If =buckets= is a 2D array, each element has to be as big as
-the original list, because the whole list might end up in the same
-bucket.
+If =buckets= is an array of arrays (called a /2D array/), each element
+has to be as big as the original list, because the whole list might
+end up in the same bucket.
 
 Thus, we need =Rn= additional storage, where =R= is the radix.
 
@@ -544,7 +647,7 @@ Also, each element will be moved =2k= times.
 So far we have used two basic data structures: the /array/ and the
 /linked list/.
 
-Both of these are general-purpose collection types, the main difference
+Both of these are *general-purpose* collection types, the main difference
 being that lists are more suitable when you don't know in advance the
 exact size of a collection.
 
@@ -553,13 +656,20 @@ since this is O(1) for arrays and O(n) for lists.
 
 * More simple data structures
 
-We will now examine some more /specialised/ data structures,
-designed for particular tasks, starting with the /stack/.
+We will now examine some more /specialised/ collections designed for
+particular tasks:
+
++ the /stack/,
+
++ the /queue/,
+
++ the /priority queue/.
 
 In each case, the underlying storage mechanism might be an array or a
-list -- it doesn't matter to us as users of, say, the stack. All that
-matters is that the stack provides the methods and capabilities we
-expect from a stack.
+list -- it doesn't matter to us as users of, say, the stack.
+
+All that matters is that the stack provides the methods and
+capabilities we expect from a stack.
 
 * The stack
 
@@ -593,30 +703,23 @@ that spends most of its time pushing and popping data from stacks.
 
 There are even stack-based programming languages such as Forth.
 
-* The stack
+* Implementing stacks
 
-Another important application for stacks is in writing , which convert
-raw text input (such as a source file written using a programming
-language) into data structures with some particular meaning.
+Implementing a stack with a linked list is easy -- the head of the
+list is the top of the stack.
 
-One of the steps involved in this task is often to push each /lexical
-token/ (in our source file these might include =if=, =else=, variable
-names etc) onto a stack.
-
-* The stack
-
-If we are implementing a stack using an array then the head of the
+If we are implementing a stack using an array then the top of the
 stack isn't necessarily the first element in the array.
 
-Otherwise we would have to move elements every time we pushed or
-popped.
+Otherwise we would have to move elements around every time we pushed
+or popped.
 
 * The stack
 
-Here is an empty stack with n elements.
+Here is an empty stack with space for =n= elements.
 
 #+BEGIN_center  
-#+ATTR_ORG: :width 800
+#+ATTR_ORG: :width 250
 [[./images/stack1.svg]]
 #+END_center
 
@@ -625,7 +728,7 @@ Here is an empty stack with n elements.
 After calling =stack.push(3)=:
 
 #+BEGIN_center  
-#+ATTR_ORG: :width 800
+#+ATTR_ORG: :width 250
 [[./images/stack2.svg]]
 #+END_center
 
@@ -634,17 +737,17 @@ After calling =stack.push(3)=:
 =stack.push(8)=, =stack.push(99)=:
 
 #+BEGIN_center  
-#+ATTR_ORG: :width 800
+#+ATTR_ORG: :width 250
 [[./images/stack3.svg]]
 #+END_center
 
 * The stack
 
 At this point, =pop()= returns 99 and moves the position of the
-head.
+head. Note that there is no need to delete the popped data.
 
 #+BEGIN_center  
-#+ATTR_ORG: :width 800
+#+ATTR_ORG: :width 250
 [[./images/stack4.svg]]
 #+END_center
 
@@ -659,16 +762,16 @@ the list so we don't need to keep track of where the head is.
 [[./images/stack-as-list.svg]]
 #+END_center
 
-* Abstract data types
+* Stack in Java using an array
 
 A stack of ints that uses an array to store the data:
 
 #+BEGIN_SRC java
-class Stack {
+class ArrayStack {
   int[] data;
   int head;
 
-  public Stack(int n) {
+  public ArrayStack(int n) {
     data = new Object[n];
     head = -1;
   }
@@ -684,17 +787,16 @@ class Stack {
 }
 #+END_SRC
 
-* Abstract data types
+* Stack in Java using an array
 
-There are various things missing from this implementation -- what are
-they?
+What is missing from this implementation?
 
 #+BEGIN_SRC java
-class Stack {
+class ArrayStack {
   int[] data;
   int head;
 
-  public Stack(int n) {
+  public ArrayStack(int n) {
     data = new Object[n];
     head = -1;
    }
@@ -710,27 +812,27 @@ class Stack {
 }
 #+END_SRC
 
-* Abstract data types
+* Stack in Java using a linked list
 
 Or using a list...
 
 #+BEGIN_SRC java
-class Stack {
-  LinkedList data;
+class ListStack {
+  LinkedList head;
 
-  public Stack2() {
-    data = new LinkedList();
+  public ListStack() {
+    head = new LinkedList();
   }
   public void push(int e) {
-    data.cons(e);
+    head.cons(e);
   }
   public T pop() {
-    int h = data.head();
-    data = data.tail();
-    return h;
+    int d = head.data();
+    head = head.tail();
+    return d;
   }
   public int peek() {
-    return data.head();
+    return head.data();
   }
 }
 #+END_SRC
@@ -739,18 +841,70 @@ class Stack {
 
 This brings us to the idea of /abstract data types/ (ADTs).
 
-The stack is defined by the ability to push, pop and peek.
+The *stack* is defined by the ability to *push*, *pop* and *peek*.
 
-There are many ways we might implement one.
+Together these methods and what we expect them to do make up the stack
+*API* (Application Programming Interface).
+
+There are many ways we might implement this API.
 
 An ADT is a template that defines data and behaviour at an abstract
 level.
 
-This can be achieved using /Java generics/.
+* Abstract data types in Java
 
-* Java generics
+There are two ways very similar ways we can define an API in Java:
 
-Java generics allow us to write code that works for many (or any)
++ using an /interface/,
+
++ using an /abstract/ class.
+
+* The Stack API as a Java Interface
+
+We define the interface then create classes which /implement/
+it. Those classes /must/ provide an implementation of the methods from
+the interface. 
+
+#+BEGIN_SRC java
+interface Stack {
+  public void push (int);
+  public int pop ();
+  public int peek ();  
+}
+
+class ArrayStack implements Stack {
+  // same as earlier example
+}
+class ListStack implements Stack {
+  // same as earlier example
+}
+#+END_SRC
+
+* The Stack API using =abstract=
+
+We define an abstract class then create classes which /extend/
+it. 
+
+#+BEGIN_SRC java
+abstract class Stack {
+  abstract public void push (int);
+  abstract public int pop ();
+  abstract public int peek ();  
+}
+
+class ArrayStack extends Stack {
+  // same as earlier example
+}
+class ListStack extends Stack {
+  // same as earlier example
+}
+#+END_SRC
+
+* Side note: generics
+
+This API is just for stacks of =int= values.
+
+Java *generics* allow us to write code that works for many (or any)
 types.
 
 It is what is happening when you see Java code that uses "angle
@@ -765,22 +919,19 @@ to store in it, i.e. what is the type =T=.
 
 * Abstract data types
 
-Using generics we can create a Stack that works for any type:
+Using generics we can create a Stack that works for any type. Here is
+just the interface part:
 
 #+BEGIN_SRC java
-public class Stack<T> {
-  //...
-  public void push(T e) { ... }
-  public T pop() { ... }
-  public T peek() { ... }
+interface Stack<T> {
+  public void push(T e);
+  public T pop();
+  public T peek();
 }
-
-//
-
-Stack<Integer> myIntStack = new Stack<>();
-myIntStack.push(42); //OK
-myIntStack.push("Hi!"); //compile-time error
 #+END_SRC
+
+Now if we create a stack of, say, strings and try to push an int onto
+it, we will get a compiler error.
 
 * Balancing parens
 
@@ -804,7 +955,7 @@ the types match.
 =push('{')=
 
 #+BEGIN_center  
-#+ATTR_ORG: :width 800
+#+ATTR_ORG: :width 250
 [[./images/parens1.svg]]
 #+END_center
 
@@ -814,7 +965,7 @@ the types match.
 =push('(')=
 
 #+BEGIN_center  
-#+ATTR_ORG: :width 800
+#+ATTR_ORG: :width 250
 [[./images/parens2.svg]]
 #+END_center
 
@@ -823,14 +974,20 @@ the types match.
 {( *[* ])}
 =push('[')=
 
+#+BEGIN_center  
+#+ATTR_ORG: :width 250
 [[./images/parens3.svg]]
+#+END_center
 
 * Balancing parens
 
 {([ *]* )}
 ~pop()=='['~
 
+#+BEGIN_center  
+#+ATTR_ORG: :width 250
 [[./images/parens3.svg]]
+#+END_center
 
 * Balancing parens
 
@@ -838,7 +995,7 @@ the types match.
 ~pop()=='('~
 
 #+BEGIN_center  
-#+ATTR_ORG: :width 800
+#+ATTR_ORG: :width 250
 [[./images/parens4.svg]]
 #+END_center
 
@@ -848,7 +1005,7 @@ the types match.
 ~pop()=='{'~
 
 #+BEGIN_center  
-#+ATTR_ORG: :width 800
+#+ATTR_ORG: :width 250
 [[./images/parens5.svg]]
 #+END_center
 
@@ -860,7 +1017,7 @@ An unbalanced example.
 =push('(')=
 
 #+BEGIN_center  
-#+ATTR_ORG: :width 800
+#+ATTR_ORG: :width 200
 [[./images/parens-unbalanced1.svg]]
 #+END_center
 
@@ -872,7 +1029,7 @@ An unbalanced example.
 =push('[')=
 
 #+BEGIN_center  
-#+ATTR_ORG: :width 800
+#+ATTR_ORG: :width 200
 [[./images/parens-unbalanced2.svg]]
 #+END_center
 
@@ -884,7 +1041,7 @@ An unbalanced example.
 =push('(')=
 
 #+BEGIN_center  
-#+ATTR_ORG: :width 800
+#+ATTR_ORG: :width 200
 [[./images/parens-unbalanced3.svg]]
 #+END_center
 
@@ -896,15 +1053,19 @@ An unbalanced example.
 ~pop()!='['~
 
 #+BEGIN_center  
-#+ATTR_ORG: :width 800
+#+ATTR_ORG: :width 200
 [[./images/parens-unbalanced3.svg]]
 #+END_center
 
 * The queue
 
-A /queue/ is a collection with =insert= and =remove= methods, where
-=remove= returns the element that has been in the queue the
-longest. The methods are often called =enque= and =deque=.
+A /queue/ is a collection with *insert* and *remove* methods, where
+*remove* returns /the element that has been in the queue the longest/.
+
+In this sense it is the opposite of a stack.
+
+The methods are often called =enque= (insert) and =deque=
+(remove).
 
 This method of access is called *FIFO* -- first in, first out.
 
@@ -922,14 +1083,31 @@ the list.
 
 * The queue
 
+A queue implemented using a linked list.
+
+First, the code for the list.
+
 #+BEGIN_SRC java
 class ListItem {
   int data;
   ListItem next;
+
+  public ListItem(int data, ListItem next) {
+    this.data = data;
+    this.next = next;
+  }
 }
+#+END_SRC
+
+* The queue
+
+The code for the queue itself.
+
+#+BEGIN_SRC java
 class QueueList {
   ListItem head;
-  int length=0;
+  int length;
+
   public void insert(int e) {
     head = new ListItem(e, head);
     length++;
@@ -971,9 +1149,11 @@ public int remove() {
 
 * The queue
 
-We can, by keeping track of the front of the queue.
+We can, by keeping track a reference to the front of the queue.
 
-The easiest way to do that is by using a /doubly-linked/ list.
+Then we have problem when we remove from the queue...
+
+The easiest way to solve that is by using a /doubly-linked/ list.
 
 This is a list where we can navigate to the previous element, as well
 as to the next.
@@ -988,7 +1168,7 @@ class DListItem {
   int data;
   DListItem previous;
   DListItem next;
-  //...
+  // getters and setters
 }
 class QueueList2 {
   DListItem head;
@@ -1018,11 +1198,15 @@ Now =remove= is O(1), a big saving for long queues!
 
 * The dequeue
 
-There are several important variations on the queue, one of which is the
-/dequeue/ (pronounced /deck/, to distinguish it from the =dequeue= method).
+There are several important variations on the queue, one of which is
+the /double-ended queue/ or /dequeue/ (pronounced /deck/, to
+distinguish it from the =dequeue= method).
 
-We can remove from either end of a deque, so we can use them
+We can remove from either end of a dequeue, so we can use them
 /stack-wise/ or /queue-wise/.
+
+We can implement a dequeue using an array (keeping track of the front
+and back of the collection) or a doubly-linked list.
 
 * The priority queue
 
@@ -1035,7 +1219,7 @@ maintaining a queue of messages or of threads within an operating
 system.
 
 New elements need to be inserted according to their priority, so the
-order of the =insert= method is no longer O(1).
+order of the =insert= method is no longer O(1) (*what is it?*).
 
 * Visualising a priority queue
 
@@ -1051,13 +1235,13 @@ lower priority than anything currently in the queue.
 * Visualising a priority queue
 
 #+BEGIN_center  
-#+ATTR_ORG: :width 800
+#+ATTR_ORG: :width 200
 [[./images/pqueue.svg]]
 #+END_center
 
 * Higher levels of abstraction
 
-Each of the ADTs we've seen this week is an abstraction for a particular
+Each of the ADTs we've seen this week is an *abstraction* for a particular
 problem, such as maintaining a list of jobs that must be completed in
 FIFO order.
 
@@ -1066,11 +1250,7 @@ types, but encapsulating the problem in the data type is a powerful form
 of abstraction.
 
 We encode the problem (e.g. the problem of managing a queue) in the
-data type.
+API of the data type.
 
 In later weeks we will look at more sophisticated ADTs that encapsulate
 different problems.
-
-For instance, the can be thought of as encoding the algorithm for
-binary search directly in the data type.
-
