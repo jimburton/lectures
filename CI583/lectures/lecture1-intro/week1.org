@@ -189,8 +189,8 @@ It is not intended to be in any particular language, but hopefully you
 could easily translate it into any that you know.
 
 #+BEGIN_EXAMPLE
--- Find the largest natural number that divides both a and b without
--- leaving a remainder.
+-- Find the largest natural number that divides both a and b
+-- without leaving a remainder.
 
 FUNCTION gcd (a, b)
   WHILE b != 0
@@ -242,9 +242,11 @@ From a higher-level, we might think of the array as a series of
 An array with space for four elements. Only indices 0 and 2 are
 occupied:
 
----------------------
-| 8 |   | 0 |   |   |
----------------------
+#+BEGIN_center  
+#+ATTR_ORG: :width 500
+[[./images/array.png]]
+#+END_center
+
 
 * Simple collections: array
 
@@ -274,7 +276,7 @@ Then we can /cons/ (add, insert) elements to the /head/ of the list.
 The head is the first (most recently consed) element of the
 list.
 
-Everything after that is called the /head/.
+Everything after that is called the /tail/.
 
 * Simple collections: linked list
 
@@ -1015,7 +1017,7 @@ encountered orders:
 | O(n^2)     |  100      |  1000  |
 | O(2^n)     | 1024      | 2^100  |
 | O(n!)      | 3,628,800 |  100!  |
-
+'
 * Growth rates of algorithms
 
 #+BEGIN_center  
